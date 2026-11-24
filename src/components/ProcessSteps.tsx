@@ -4,10 +4,13 @@ import React, { useState } from "react";
 import { ChevronDown, ArrowUpRight } from "lucide-react";
 import { siteConfig } from "@/config/site";
 import {
-  FadeIn,
   StaggerContainer,
   StaggerItem,
 } from "@/components/motion/FadeIn";
+import {
+  MaskedHeadline,
+  ArchitecturalRule,
+} from "@/components/motion/EditorialMotion";
 import { TactileCard } from "@/components/motion/TactileCard";
 import { useInspectionModal } from "@/context/InspectionModalContext";
 
@@ -18,24 +21,27 @@ export function ProcessSteps() {
   return (
     <section
       aria-labelledby="process-heading"
-      className="py-20 sm:py-24 lg:py-28 bg-[#F3F2EE]"
+      className="py-20 sm:py-24 lg:py-28 bg-[#F3F2EE] surface-grain"
     >
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <FadeIn className="max-w-3xl space-y-3 mb-12 sm:mb-16">
-          <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.14em] text-[#C85A32]">
+      <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="max-w-3xl space-y-3 mb-8 sm:mb-10">
+          <div className="flex items-center gap-2 font-mono-spec text-xs font-semibold uppercase tracking-[0.14em] text-[#C85A32]">
             <span className="h-1.5 w-1.5 rounded-full bg-[#C85A32]" />
             <span>{siteConfig.processSection.eyebrow}</span>
           </div>
-          <h2
+          <MaskedHeadline
+            as="h2"
             id="process-heading"
-            className="font-heading text-3xl sm:text-4xl lg:text-[44px] font-bold text-[#18181B] tracking-tight leading-[1.12]"
+            className="font-heading text-display-section font-bold text-[#18181B]"
           >
             {siteConfig.processSection.headline}
-          </h2>
+          </MaskedHeadline>
           <p className="text-base sm:text-lg text-zinc-600 leading-relaxed">
             {siteConfig.processSection.subheadline}
           </p>
-        </FadeIn>
+        </div>
+
+        <ArchitecturalRule className="mb-10 sm:mb-12" />
 
         <StaggerContainer className="grid grid-cols-1 md:grid-cols-3 gap-6 lg:gap-8">
           {siteConfig.processSection.steps.map((step) => {
@@ -83,8 +89,10 @@ export function ProcessSteps() {
                     </p>
                   </div>
 
-                  <div className="mt-6 pt-4 border-t border-zinc-100 flex items-center justify-between text-xs font-semibold text-zinc-500">
-                    <span>{isOpen ? "Hide details" : "Inspect step specs"}</span>
+                  <div className="mt-6 pt-4 border-t border-zinc-900/8 flex items-center justify-between text-xs font-semibold text-zinc-500">
+                    <span>
+                      {isOpen ? "Hide details" : "Inspect step specs"}
+                    </span>
                     <ChevronDown
                       className={`h-4 w-4 transition-transform ${
                         isOpen ? "rotate-180 text-[#C85A32]" : ""

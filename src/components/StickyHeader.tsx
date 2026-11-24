@@ -22,12 +22,16 @@ import {
 } from "framer-motion";
 import { siteConfig } from "@/config/site";
 import { useInspectionModal } from "@/context/InspectionModalContext";
+import { useSmoothScroll } from "@/components/motion/SmoothScrollProvider";
 
 export function StickyHeader() {
   const pathname = usePathname();
   const { openInspectionModal } = useInspectionModal();
+  const { pauseScroll, resumeScroll } = useSmoothScroll();
   const [isPastHero, setIsPastHero] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [supportsCssScrollTimeline, setSupportsCssScrollTimeline] =
+    useState(false);
 
   const prefersReducedMotion = useReducedMotion();
   const { scrollYProgress } = useScroll();
@@ -38,19 +42,35 @@ export function StickyHeader() {
   });
 
   useEffect(() => {
-    const handleScroll = () => {
-      const heroEl = document.getElementById("top");
-      if (heroEl) {
-        const rect = heroEl.getBoundingClientRect();
-        setIsPastHero(rect.bottom <= 88);
-      } else {
-        setIsPastHero(window.scrollY > 360);
-      }
-    };
+    if (
+      typeof CSS !== "undefined" &&
+      typeof CSS.supports === "function" &&
+      CSS.supports("animation-timeline: scroll()")
+    ) {
+      setSupportsCssScrollTimeline(true);
+    }
+  }, []);
 
-    handleScroll();
-    window.addEventListener("scroll", handleScroll, { passive: true });
-    return () => window.removeEventListener("scroll", handleScroll);
+  // Zero-scroll-jank IntersectionObserver hero detection
+  useEffect(() => {
+    const heroEl = document.getElementById("top");
+    if (!heroEl) {
+      setIsPastHero(true);
+      return;
+    }
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        setIsPastHero(!entry.isIntersecting);
+      },
+      {
+        rootMargin: "-88px 0px 0px 0px",
+        threshold: 0,
+      }
+    );
+
+    observer.observe(heroEl);
+    return () => observer.disconnect();
   }, [pathname]);
 
   useEffect(() => {
@@ -59,6 +79,7 @@ export function StickyHeader() {
 
   useEffect(() => {
     if (!mobileMenuOpen) return;
+    pauseScroll();
     const originalOverflow = document.body.style.overflow;
     document.body.style.overflow = "hidden";
 
@@ -69,10 +90,11 @@ export function StickyHeader() {
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => {
+      resumeScroll();
       document.body.style.overflow = originalOverflow;
       window.removeEventListener("keydown", handleKeyDown);
     };
-  }, [mobileMenuOpen]);
+  }, [mobileMenuOpen, pauseScroll, resumeScroll]);
 
   return (
     <>
@@ -100,12 +122,13 @@ export function StickyHeader() {
         </div>
       </div>
 
-      {/* Adaptive Glassmorphic Sticky Header */}
+      {/* Adaptive Glassmorphic Sticky Header anchored across View Transitions */}
       <header
+        style={{ viewTransitionName: "site-header" }}
         className={`sticky top-0 z-40 w-full transition-all duration-300 ${
           isPastHero
-            ? "bg-[#FAF9F6]/90 backdrop-blur-md shadow-[0_8px_30px_-10px_rgba(24,24,27,0.08)] border-b border-zinc-200/80 text-[#18181B] py-3"
-            : "bg-[#0B0C0E]/85 backdrop-blur-md border-b border-white/10 text-white py-3.5"
+            ? "bg-[#FAF9F6]/92 backdrop-blur-md shadow-[0_8px_30px_-12px_rgba(24,24,27,0.09)] border-b border-zinc-900/8 text-[#18181B] py-3"
+            : "bg-[#0B0C0E]/88 backdrop-blur-md border-b border-white/10 text-white py-3.5"
         }`}
       >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between gap-6">
@@ -159,10 +182,10 @@ export function StickyHeader() {
             </div>
           </Link>
 
-          {/* Center: 4 Dedicated Multi-Page Navigation Links with Tactile Hover Lift */}
+          {/* Center: 4 Dedicated Multi-Page Navigation Links */}
           <nav
             aria-label="Primary Navigation"
-            className="hidden lg:flex items-center gap-2"
+            className="hidden lg:flex items-center gap-1.5"
           >
             {siteConfig.navigation.map((item) => {
               const isActive = pathname === item.href;
@@ -213,14 +236,14 @@ export function StickyHeader() {
             <button
               type="button"
               onClick={() => openInspectionModal()}
-              className={`hidden sm:inline-flex items-center gap-1.5 whitespace-nowrap rounded-full px-5 py-2.5 text-sm font-semibold text-white transition-all duration-200 hover:-translate-y-0.5 active:scale-[0.98] cursor-pointer ${
+              className={`group hidden sm:inline-flex items-center gap-1.5 whitespace-nowrap rounded-full px-5 py-2.5 text-sm font-semibold text-white transition-all duration-200 hover:-translate-y-0.5 active:scale-[0.98] cursor-pointer ${
                 isPastHero
                   ? "bg-[#18181B] hover:bg-[#C85A32] shadow-sm"
                   : "bg-[#C85A32] hover:bg-[#B04A25] shadow-[0_6px_20px_-4px_rgba(200,90,50,0.45)]"
               }`}
             >
               <span>Book Inspection</span>
-              <ArrowUpRight className="h-4 w-4" />
+              <ArrowUpRight className="h-4 w-4 transition-transform duration-200 group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
             </button>
 
             <button
@@ -249,12 +272,19 @@ export function StickyHeader() {
           </div>
         </div>
 
-        {/* Scroll Progress Bar */}
-        <motion.div
-          style={{ scaleX: prefersReducedMotion ? 0 : smoothProgress }}
-          className="absolute bottom-0 left-0 right-0 h-[2px] origin-left bg-gradient-to-r from-[#C85A32] to-[#E07A5F]"
-          aria-hidden="true"
-        />
+        {/* GPU-Native CSS Scroll-Driven Progress Bar (with Framer fallback) */}
+        {supportsCssScrollTimeline && !prefersReducedMotion ? (
+          <div
+            className="css-scroll-progress absolute bottom-0 left-0 right-0 h-[2px] bg-gradient-to-r from-[#C85A32] to-[#E8845F]"
+            aria-hidden="true"
+          />
+        ) : (
+          <motion.div
+            style={{ scaleX: prefersReducedMotion ? 0 : smoothProgress }}
+            className="absolute bottom-0 left-0 right-0 h-[2px] origin-left bg-gradient-to-r from-[#C85A32] to-[#E8845F]"
+            aria-hidden="true"
+          />
+        )}
       </header>
 
       {/* Tablet & Mobile Slide-Over Navigation Drawer */}
@@ -273,14 +303,15 @@ export function StickyHeader() {
               exit={{ opacity: 0 }}
               transition={{ duration: 0.2 }}
               onClick={() => setMobileMenuOpen(false)}
-              className="fixed inset-0 bg-zinc-950/60 backdrop-blur-xs"
+              className="fixed inset-0 bg-zinc-950/65 backdrop-blur-xs"
             />
 
             <motion.nav
+              data-lenis-prevent
               initial={{ x: "100%" }}
               animate={{ x: 0 }}
               exit={{ x: "100%" }}
-              transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
+              transition={{ duration: 0.28, ease: [0.16, 1, 0.3, 1] }}
               className="fixed right-0 top-0 bottom-0 w-[min(22rem,86vw)] bg-[#FAF9F6] shadow-2xl flex flex-col justify-between overflow-y-auto z-10"
             >
               <div>

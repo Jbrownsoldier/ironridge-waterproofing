@@ -1,9 +1,36 @@
 import type { Metadata, Viewport } from "next";
+import {
+  Plus_Jakarta_Sans,
+  Instrument_Serif,
+  JetBrains_Mono,
+} from "next/font/google";
 import "./globals.css";
 import { siteConfig } from "@/config/site";
 import { SiteShell } from "@/components/SiteShell";
 import { LocalBusinessStructuredData } from "@/components/StructuredData";
 import { buildPageMetadata } from "@/lib/metadata";
+
+const plusJakartaSans = Plus_Jakarta_Sans({
+  subsets: ["latin"],
+  weight: ["400", "500", "600", "700", "800"],
+  variable: "--font-jakarta",
+  display: "swap",
+});
+
+const instrumentSerif = Instrument_Serif({
+  subsets: ["latin"],
+  weight: ["400"],
+  style: ["normal", "italic"],
+  variable: "--font-instrument-serif",
+  display: "swap",
+});
+
+const jetbrainsMono = JetBrains_Mono({
+  subsets: ["latin"],
+  weight: ["400", "500", "600", "700"],
+  variable: "--font-jetbrains",
+  display: "swap",
+});
 
 export const viewport: Viewport = {
   width: "device-width",
@@ -48,19 +75,10 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
-      <head>
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link
-          rel="preconnect"
-          href="https://fonts.gstatic.com"
-          crossOrigin="anonymous"
-        />
-        <link
-          href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@500;600;700&family=JetBrains+Mono:wght@500;600&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap"
-          rel="stylesheet"
-        />
-      </head>
+    <html
+      lang="en"
+      className={`${plusJakartaSans.variable} ${instrumentSerif.variable} ${jetbrainsMono.variable}`}
+    >
       <body className="min-h-screen bg-[#FAF9F6] text-[#18181B] antialiased selection:bg-[#C85A32]/15 selection:text-[#18181B]">
         <LocalBusinessStructuredData />
         <SiteShell>{children}</SiteShell>

@@ -1,7 +1,15 @@
 "use client";
 
-import React, { useState, useRef, useCallback, useEffect } from "react";
-import { Check, Star, MoveHorizontal, Play, Film } from "lucide-react";
+import React, { useState, useRef, useEffect } from "react";
+import {
+  Check,
+  Star,
+  Play,
+  Pause,
+  Volume2,
+  VolumeX,
+  Film,
+} from "lucide-react";
 import { useReducedMotion } from "framer-motion";
 import { siteConfig } from "@/config/site";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
@@ -10,136 +18,43 @@ import {
   StaggerContainer,
   StaggerItem,
 } from "@/components/motion/FadeIn";
+import {
+  MaskedHeadline,
+  ArchitecturalRule,
+  SpotlightSurface,
+} from "@/components/motion/EditorialMotion";
 import { TactileCard } from "@/components/motion/TactileCard";
+import {
+  ComparisonSlider,
+  type ComparisonAnnotation,
+} from "@/components/ComparisonSlider";
 
-interface ComparisonSliderProps {
-  beforeImage: string;
-  afterImage: string;
-  beforeLabel: string;
-  afterLabel: string;
-  location: string;
-}
-
-function ComparisonSlider({
-  beforeImage,
-  afterImage,
-  beforeLabel,
-  afterLabel,
-  location,
-}: ComparisonSliderProps) {
-  const [sliderPos, setSliderPos] = useState(50);
-  const [isDragging, setIsDragging] = useState(false);
-  const containerRef = useRef<HTMLDivElement | null>(null);
-
-  const updatePositionFromClientX = useCallback((clientX: number) => {
-    const container = containerRef.current;
-    if (!container) return;
-    const rect = container.getBoundingClientRect();
-    const x = Math.max(0, Math.min(clientX - rect.left, rect.width));
-    const percent = Math.max(4, Math.min(96, (x / rect.width) * 100));
-    setSliderPos(percent);
-  }, []);
-
-  const handlePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
-    setIsDragging(true);
-    e.currentTarget.setPointerCapture(e.pointerId);
-    updatePositionFromClientX(e.clientX);
-  };
-
-  const handlePointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
-    if (!isDragging) return;
-    updatePositionFromClientX(e.clientX);
-  };
-
-  const handlePointerUp = (e: React.PointerEvent<HTMLDivElement>) => {
-    if (!isDragging) return;
-    setIsDragging(false);
-    e.currentTarget.releasePointerCapture(e.pointerId);
-  };
-
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
-    if (e.key === "ArrowLeft") {
-      e.preventDefault();
-      setSliderPos((p) => Math.max(5, p - 5));
-    } else if (e.key === "ArrowRight") {
-      e.preventDefault();
-      setSliderPos((p) => Math.min(95, p + 5));
-    }
-  };
-
-  return (
-    <div
-      ref={containerRef}
-      role="slider"
-      tabIndex={0}
-      aria-label={`Before and after comparison slider for ${location}`}
-      aria-valuemin={0}
-      aria-valuemax={100}
-      aria-valuenow={Math.round(sliderPos)}
-      onPointerDown={handlePointerDown}
-      onPointerMove={handlePointerMove}
-      onPointerUp={handlePointerUp}
-      onPointerCancel={handlePointerUp}
-      onKeyDown={handleKeyDown}
-      className="relative w-full aspect-16/10 rounded-2xl overflow-hidden select-none cursor-ew-resize bg-[#18181B] touch-pan-y focus-visible:outline-2 focus-visible:outline-[#C85A32]"
-    >
-      <img
-        src={afterImage}
-        alt={`${location} after permanent repair`}
-        draggable={false}
-        className="absolute inset-0 h-full w-full object-cover pointer-events-none"
-      />
-
-      <div
-        className="absolute inset-0 overflow-hidden pointer-events-none"
-        style={{ clipPath: `inset(0 ${100 - sliderPos}% 0 0)` }}
-      >
-        <img
-          src={beforeImage}
-          alt={`${location} before repair`}
-          draggable={false}
-          className="absolute inset-0 h-full w-full object-cover"
-        />
-      </div>
-
-      <div className="absolute top-3.5 left-3.5 z-10 pointer-events-none">
-        <span className="inline-flex items-center gap-1.5 rounded-full bg-zinc-950/75 backdrop-blur-md px-3 py-1 text-[11px] font-semibold text-white">
-          <span className="h-1.5 w-1.5 rounded-full bg-[#C85A32]" />
-          {beforeLabel}
-        </span>
-      </div>
-
-      <div className="absolute top-3.5 right-3.5 z-10 pointer-events-none">
-        <span className="inline-flex items-center gap-1.5 rounded-full bg-[#1E6B4B]/90 backdrop-blur-md px-3 py-1 text-[11px] font-semibold text-white">
-          <Check className="h-3 w-3 stroke-[2.5]" />
-          {afterLabel}
-        </span>
-      </div>
-
-      <div
-        className="absolute top-0 bottom-0 z-20 w-0.5 bg-white/90 shadow-[0_0_12px_rgba(0,0,0,0.45)] pointer-events-none"
-        style={{ left: `${sliderPos}%` }}
-      >
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 h-10 w-10 rounded-full bg-white text-[#18181B] shadow-xl flex items-center justify-center">
-          <MoveHorizontal className="h-4 w-4" />
-        </div>
-      </div>
-
-      <div className="absolute bottom-3.5 left-1/2 -translate-x-1/2 z-10 pointer-events-none">
-        <span className="inline-flex items-center rounded-full bg-zinc-950/70 backdrop-blur-md px-3 py-1 text-[11px] font-medium text-zinc-200">
-          Drag to compare Before &amp; After
-        </span>
-      </div>
-    </div>
-  );
-}
+const CASE_ANNOTATIONS: Record<string, ComparisonAnnotation[]> = {
+  westerville: [
+    { side: "before", label: "Active Diagonal Shear Crack", xPercent: 28, yPercent: 52 },
+    { side: "after", label: "Carbon Fiber Lock + Vapor Wall", xPercent: 72, yPercent: 48 },
+  ],
+  dublin: [
+    { side: "before", label: "Cove Joint Groundwater Seepage", xPercent: 26, yPercent: 68 },
+    { side: "after", label: "Sub-Floor French Drain + Battery Sump", xPercent: 72, yPercent: 62 },
+  ],
+  "upper-arlington": [
+    { side: "before", label: "78% Humidity Exposed Dirt Floor", xPercent: 28, yPercent: 60 },
+    { side: "after", label: "20-Mil Antimicrobial Encapsulation", xPercent: 72, yPercent: 56 },
+  ],
+};
 
 export function BeforeAfterSection() {
   const prefersReducedMotion = useReducedMotion();
   const videoRef = useRef<HTMLVideoElement | null>(null);
-  const [activeChapter, setActiveChapter] = useState<string>(
-    siteConfig.beforeAfterSection.cases[0].id
-  );
+  const cases = siteConfig.beforeAfterSection.cases;
+
+  const [activeChapter, setActiveChapter] = useState<string>(cases[0].id);
+  const [activeTab, setActiveTab] = useState<string>(cases[0].id);
+  const [isPlaying, setIsPlaying] = useState<boolean>(false);
+  const [isMuted, setIsMuted] = useState<boolean>(true);
+  const [currentTime, setCurrentTime] = useState<number>(0);
+  const [duration, setDuration] = useState<number>(15.5);
   const [activeReviewAuthor, setActiveReviewAuthor] = useState<string | null>(
     null
   );
@@ -152,8 +67,31 @@ export function BeforeAfterSection() {
     }
   }, [prefersReducedMotion]);
 
+  // Real-time chapter sync as playback crosses 0s -> 5.2s -> 10.2s
+  const handleTimeUpdate = () => {
+    const vid = videoRef.current;
+    if (!vid) return;
+    const t = vid.currentTime;
+    setCurrentTime(t);
+    if (vid.duration && !Number.isNaN(vid.duration)) {
+      setDuration(vid.duration);
+    }
+
+    let matchedId = cases[0].id;
+    for (let i = cases.length - 1; i >= 0; i--) {
+      if (t >= cases[i].videoStartSec - 0.15) {
+        matchedId = cases[i].id;
+        break;
+      }
+    }
+    if (matchedId !== activeChapter) {
+      setActiveChapter(matchedId);
+    }
+  };
+
   const handleJumpChapter = (caseId: string, startSec: number) => {
     setActiveChapter(caseId);
+    setActiveTab(caseId);
     const vid = videoRef.current;
     if (vid) {
       vid.currentTime = startSec;
@@ -161,35 +99,140 @@ export function BeforeAfterSection() {
     }
   };
 
+  const togglePlay = () => {
+    const vid = videoRef.current;
+    if (!vid) return;
+    if (vid.paused) {
+      vid.play().catch(() => {});
+    } else {
+      vid.pause();
+    }
+  };
+
+  const toggleMute = () => {
+    const vid = videoRef.current;
+    if (!vid) return;
+    vid.muted = !vid.muted;
+    setIsMuted(vid.muted);
+  };
+
+  const getChapterFillPercent = (index: number) => {
+    const start = cases[index].videoStartSec;
+    const end =
+      index < cases.length - 1 ? cases[index + 1].videoStartSec : duration;
+    if (currentTime <= start) return 0;
+    if (currentTime >= end) return 100;
+    return Math.min(100, Math.max(0, ((currentTime - start) / (end - start)) * 100));
+  };
+
   return (
     <section
       id="before-after"
       aria-labelledby="before-after-heading"
-      className="py-16 sm:py-24 bg-[#F3F2EE]"
+      className="py-16 sm:py-24 bg-[#F3F2EE] surface-grain"
     >
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-16">
-        {/* 3-Chapter Transformation Video Reel */}
-        <FadeIn className="rounded-3xl bg-[#121418] text-white overflow-hidden shadow-[0_24px_56px_-14px_rgba(24,24,27,0.22)]">
+      <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-16">
+        {/* Custom Branded 3-Chapter Transformation Video Player */}
+        <SpotlightSurface className="rounded-3xl bg-[#111317] text-white border border-white/10 overflow-hidden shadow-[0_28px_70px_-18px_rgba(24,24,27,0.3)]">
           <div className="grid grid-cols-1 lg:grid-cols-12 items-stretch">
-            <div className="lg:col-span-7 relative bg-black">
-              <video
-                ref={videoRef}
-                src={siteConfig.beforeAfterSection.transformationVideo}
-                poster={siteConfig.beforeAfterSection.cases[0].afterImage}
-                controls
-                muted
-                loop
-                playsInline
-                preload="metadata"
-                className="w-full aspect-16/10 object-cover"
-              />
+            <div className="lg:col-span-7 relative bg-black flex flex-col justify-between">
+              <div className="relative w-full aspect-16/10 bg-black overflow-hidden">
+                <video
+                  ref={videoRef}
+                  src={siteConfig.beforeAfterSection.transformationVideo}
+                  poster={cases[0].afterImage}
+                  muted={isMuted}
+                  loop
+                  playsInline
+                  preload="metadata"
+                  onPlay={() => setIsPlaying(true)}
+                  onPause={() => setIsPlaying(false)}
+                  onTimeUpdate={handleTimeUpdate}
+                  onLoadedMetadata={(e) => {
+                    const d = e.currentTarget.duration;
+                    if (d && !Number.isNaN(d)) setDuration(d);
+                  }}
+                  onClick={togglePlay}
+                  className="h-full w-full object-cover cursor-pointer"
+                />
+
+                <div
+                  className="pointer-events-none absolute inset-x-0 bottom-0 h-20 bg-gradient-to-t from-black/80 to-transparent"
+                  aria-hidden="true"
+                />
+
+                {/* Custom Architectural Transport Bar */}
+                <div className="absolute bottom-3.5 left-4 right-4 flex flex-col gap-2.5">
+                  {/* 3 Segmented Chapter Scrub Tracks */}
+                  <div className="grid grid-cols-3 gap-1.5">
+                    {cases.map((project, idx) => (
+                      <button
+                        key={project.id}
+                        type="button"
+                        onClick={() =>
+                          handleJumpChapter(project.id, project.videoStartSec)
+                        }
+                        aria-label={`Jump to chapter ${idx + 1}: ${project.location}`}
+                        className="h-2 flex items-center cursor-pointer group"
+                      >
+                        <span className="relative w-full h-1 rounded-full bg-white/25 overflow-hidden">
+                          <span
+                            className="absolute inset-y-0 left-0 bg-[#C85A32] transition-[width] duration-150"
+                            style={{ width: `${getChapterFillPercent(idx)}%` }}
+                          />
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={togglePlay}
+                        aria-label={isPlaying ? "Pause video" : "Play video"}
+                        className="inline-flex items-center gap-1.5 rounded-full bg-white/15 hover:bg-white/25 backdrop-blur-md border border-white/15 px-3 py-1 text-[11px] font-semibold text-white transition-colors cursor-pointer"
+                      >
+                        {isPlaying ? (
+                          <>
+                            <Pause className="h-3 w-3 text-[#E8845F]" />
+                            <span>Pause</span>
+                          </>
+                        ) : (
+                          <>
+                            <Play className="h-3 w-3 text-emerald-400" />
+                            <span>Play</span>
+                          </>
+                        )}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={toggleMute}
+                        aria-label={isMuted ? "Unmute video" : "Mute video"}
+                        className="inline-flex items-center justify-center rounded-full bg-white/15 hover:bg-white/25 backdrop-blur-md border border-white/15 p-1.5 text-white transition-colors cursor-pointer"
+                      >
+                        {isMuted ? (
+                          <VolumeX className="h-3.5 w-3.5 text-zinc-300" />
+                        ) : (
+                          <Volume2 className="h-3.5 w-3.5 text-emerald-400" />
+                        )}
+                      </button>
+                    </div>
+
+                    <span className="font-mono-spec text-[10px] uppercase tracking-wider text-zinc-200 tabular-nums-spec">
+                      00:{String(Math.floor(currentTime)).padStart(2, "0")} / 00:
+                      {String(Math.round(duration)).padStart(2, "0")}
+                    </span>
+                  </div>
+                </div>
+              </div>
             </div>
 
             <div className="lg:col-span-5 p-6 sm:p-8 flex flex-col justify-between space-y-5">
               <div className="space-y-2.5">
                 <span className="inline-flex items-center gap-1.5 font-mono-spec text-[11px] font-semibold uppercase tracking-widest text-[#E8845F]">
                   <Film className="h-3.5 w-3.5" />
-                  <span>3-CHAPTER FIELD WALKTHROUGH</span>
+                  <span>SYNCED 3-CHAPTER FIELD WALKTHROUGH</span>
                 </span>
                 <h2
                   id="before-after-heading"
@@ -198,14 +241,15 @@ export function BeforeAfterSection() {
                   Watch the Full Before-to-After Repairs
                 </h2>
                 <p className="text-sm text-zinc-400 leading-relaxed">
-                  Select a Central Ohio neighborhood below to jump straight to
-                  that project transformation.
+                  Chapters auto-track live playback. Click any Central Ohio
+                  project to scrub the video and sync the slider dossier below.
                 </p>
               </div>
 
               <div className="space-y-2">
-                {siteConfig.beforeAfterSection.cases.map((project, idx) => {
+                {cases.map((project, idx) => {
                   const active = activeChapter === project.id;
+                  const fill = getChapterFillPercent(idx);
                   return (
                     <button
                       key={project.id}
@@ -214,12 +258,19 @@ export function BeforeAfterSection() {
                         handleJumpChapter(project.id, project.videoStartSec)
                       }
                       aria-pressed={active}
-                      className={`w-full text-left rounded-2xl px-4 py-3 flex items-center justify-between gap-3 transition-all cursor-pointer ${
+                      className={`relative overflow-hidden w-full text-left rounded-2xl px-4 py-3 flex items-center justify-between gap-3 transition-all cursor-pointer border ${
                         active
-                          ? "bg-[#C85A32] text-white shadow-md scale-[1.01]"
-                          : "bg-white/[0.06] text-zinc-300 hover:bg-white/[0.11] hover:text-white"
+                          ? "bg-[#C85A32] border-[#E8845F]/40 text-white shadow-md"
+                          : "bg-white/[0.05] border-white/8 text-zinc-300 hover:bg-white/[0.1] hover:text-white"
                       }`}
                     >
+                      {active && (
+                        <span
+                          className="pointer-events-none absolute bottom-0 left-0 h-0.5 bg-white/80 transition-[width] duration-150"
+                          style={{ width: `${fill}%` }}
+                          aria-hidden="true"
+                        />
+                      )}
                       <div className="min-w-0">
                         <p className="font-mono-spec text-[10px] opacity-80">
                           CHAPTER 0{idx + 1}
@@ -235,26 +286,30 @@ export function BeforeAfterSection() {
               </div>
             </div>
           </div>
-        </FadeIn>
+        </SpotlightSurface>
 
-        {/* Project Case Study Tabs + Interactive Slider Dossier */}
+        {/* Project Case Study Tabs + Unified Interactive Slider Dossiers */}
         <FadeIn delay={0.06}>
           <div className="mb-8 space-y-2">
-            <h3 className="font-heading text-2xl sm:text-3xl font-bold text-[#18181B]">
+            <MaskedHeadline
+              as="h3"
+              className="font-heading text-2xl sm:text-3xl font-bold text-[#18181B]"
+            >
               Interactive Before &amp; After Project Dossiers
-            </h3>
+            </MaskedHeadline>
             <p className="text-sm sm:text-base text-zinc-600">
               {siteConfig.beforeAfterSection.subheadline}
             </p>
           </div>
 
           <Tabs
-            defaultValue={siteConfig.beforeAfterSection.cases[0].id}
+            value={activeTab}
+            onValueChange={setActiveTab}
             className="w-full"
           >
             <div className="flex justify-start mb-6">
               <TabsList className="flex flex-wrap sm:flex-nowrap h-auto w-full sm:w-auto gap-1">
-                {siteConfig.beforeAfterSection.cases.map((project) => (
+                {cases.map((project) => (
                   <TabsTrigger
                     key={project.id}
                     value={project.id}
@@ -266,9 +321,16 @@ export function BeforeAfterSection() {
               </TabsList>
             </div>
 
-            {siteConfig.beforeAfterSection.cases.map((project, index) => (
+            {cases.map((project, index) => (
               <TabsContent key={project.id} value={project.id}>
-                <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-10 items-center rounded-3xl surface-card p-5 sm:p-8 lg:p-10">
+                <div
+                  style={
+                    index === 0
+                      ? { viewTransitionName: "case-study-hero-card" }
+                      : undefined
+                  }
+                  className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-10 items-center rounded-3xl surface-card p-5 sm:p-8 lg:p-10"
+                >
                   <div className="lg:col-span-7">
                     <ComparisonSlider
                       beforeImage={project.beforeImage}
@@ -276,14 +338,16 @@ export function BeforeAfterSection() {
                       beforeLabel={project.beforeLabel}
                       afterLabel={project.afterLabel}
                       location={project.location}
+                      priority={index === 0}
+                      annotations={CASE_ANNOTATIONS[project.id] || []}
                     />
                   </div>
 
                   <div className="lg:col-span-5 space-y-6">
-                    <div className="flex items-center justify-between border-b border-zinc-200/80 pb-4">
+                    <div className="flex items-center justify-between border-b border-zinc-900/10 pb-4">
                       <div>
                         <span className="font-mono-spec text-xs text-zinc-400">
-                          CASE STUDY 0{index + 1}
+                          CASE STUDY 0{index + 1} // VERIFIED RECORD
                         </span>
                         <h3 className="font-heading text-xl font-bold text-[#18181B] mt-0.5">
                           {project.location}
@@ -293,15 +357,15 @@ export function BeforeAfterSection() {
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-1 gap-4 text-sm">
                       <div>
-                        <p className="text-xs font-semibold uppercase tracking-wider text-zinc-400">
+                        <p className="font-mono-spec text-[11px] font-semibold uppercase tracking-wider text-zinc-400">
                           Initial Condition
                         </p>
                         <p className="text-[#18181B] font-medium mt-1 leading-relaxed">
                           {project.problem}
                         </p>
                       </div>
-                      <div className="pt-3 border-t border-zinc-100">
-                        <p className="text-xs font-semibold uppercase tracking-wider text-[#1E6B4B]">
+                      <div className="pt-3 border-t border-zinc-900/8">
+                        <p className="font-mono-spec text-[11px] font-semibold uppercase tracking-wider text-[#1E6B4B]">
                           Engineered Scope
                         </p>
                         <p className="text-[#18181B] font-medium mt-1 leading-relaxed">
@@ -314,7 +378,7 @@ export function BeforeAfterSection() {
                       {project.specs.map((spec) => (
                         <span
                           key={spec}
-                          className="inline-flex items-center gap-1.5 rounded-full bg-[#F3F2EE] px-3 py-1 text-xs font-semibold text-zinc-700"
+                          className="inline-flex items-center gap-1.5 rounded-full bg-[#F3F2EE] border border-zinc-900/6 px-3 py-1 text-xs font-semibold text-zinc-700"
                         >
                           <Check className="h-3.5 w-3.5 text-[#1E6B4B]" />
                           {spec}
@@ -322,8 +386,8 @@ export function BeforeAfterSection() {
                       ))}
                     </div>
 
-                    <blockquote className="pt-4 border-t border-zinc-200/80 space-y-3">
-                      <p className="text-sm sm:text-[15px] text-zinc-700 leading-relaxed">
+                    <blockquote className="pt-4 border-t border-zinc-900/10 space-y-3">
+                      <p className="font-serif-editorial text-lg text-zinc-800 leading-snug">
                         &ldquo;{project.testimonial.quote}&rdquo;
                       </p>
                       <footer className="flex items-center justify-between gap-2 text-xs">
@@ -342,16 +406,21 @@ export function BeforeAfterSection() {
           </Tabs>
         </FadeIn>
 
+        <ArchitecturalRule />
+
         {/* Tactile Verified Google Reviews Strip */}
-        <div id="reviews" className="pt-4 scroll-mt-24">
+        <div id="reviews" className="pt-2 scroll-mt-24">
           <FadeIn className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-8">
             <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#1E6B4B] mb-1.5">
+              <p className="font-mono-spec text-xs font-semibold uppercase tracking-[0.14em] text-[#1E6B4B] mb-1.5">
                 VERIFIED HOMEOWNER FEEDBACK
               </p>
-              <h3 className="font-heading text-2xl sm:text-3xl font-bold text-[#18181B]">
+              <MaskedHeadline
+                as="h3"
+                className="font-heading text-2xl sm:text-3xl font-bold text-[#18181B]"
+              >
                 What Central Ohio Homeowners Say After Heavy Storms
-              </h3>
+              </MaskedHeadline>
             </div>
             <div className="flex items-center gap-2 text-sm font-semibold text-[#18181B]">
               <div className="flex items-center text-amber-500">
@@ -389,15 +458,15 @@ export function BeforeAfterSection() {
                     }
                   >
                     <div className="space-y-3">
-                      <span className="inline-block text-xs font-semibold text-[#1E6B4B]">
+                      <span className="inline-block font-mono-spec text-[11px] font-semibold uppercase tracking-wide text-[#1E6B4B]">
                         {review.highlightTag}
                       </span>
-                      <p className="text-sm sm:text-[15px] text-zinc-600 leading-relaxed">
+                      <p className="text-sm sm:text-[15px] text-zinc-700 leading-relaxed">
                         &ldquo;{review.quote}&rdquo;
                       </p>
                     </div>
 
-                    <div className="pt-4 border-t border-zinc-100 flex items-center justify-between text-xs">
+                    <div className="pt-4 border-t border-zinc-900/8 flex items-center justify-between text-xs">
                       <div>
                         <p className="font-semibold text-[#18181B]">
                           {review.author} • {review.suburb}

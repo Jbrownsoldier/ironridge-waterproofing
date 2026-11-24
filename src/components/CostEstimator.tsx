@@ -2,6 +2,11 @@
 
 import React, { useState, useMemo } from "react";
 import { ArrowUpRight, ShieldCheck, Check, Sparkles, Clock } from "lucide-react";
+import {
+  RollingNumber,
+  SpotlightSurface,
+  MagneticButton,
+} from "@/components/motion/EditorialMotion";
 
 interface EstimatorOption {
   id: string;
@@ -149,47 +154,56 @@ export function CostEstimator({ id, onLockEstimate }: CostEstimatorProps) {
     setQuantity(opt.defaultVal);
   };
 
-  const { lowTotal, highTotal, zeroAprMonthly, lowMonthly, franchiseSavings } =
-    useMemo(() => {
-      let low =
-        activeOption.baseFeeLow + quantity * activeOption.lowPerUnit;
-      let high =
-        activeOption.baseFeeHigh + quantity * activeOption.highPerUnit;
+  const {
+    lowTotal,
+    highTotal,
+    midpoint,
+    franchiseTotal,
+    zeroAprMonthly,
+    lowMonthly,
+    franchiseSavings,
+  } = useMemo(() => {
+    let low = activeOption.baseFeeLow + quantity * activeOption.lowPerUnit;
+    let high = activeOption.baseFeeHigh + quantity * activeOption.highPerUnit;
 
-      if (isFinishedSpace) {
-        low *= 1.15;
-        high *= 1.15;
-      }
+    if (isFinishedSpace) {
+      low *= 1.15;
+      high *= 1.15;
+    }
 
-      if (activeOption.supportsBackupToggle && includeBatteryBackup) {
-        low += 1150;
-        high += 1400;
-      }
+    if (activeOption.supportsBackupToggle && includeBatteryBackup) {
+      low += 1150;
+      high += 1400;
+    }
 
-      const midpoint = (low + high) / 2;
-      const apr12 = Math.round(midpoint / 12);
-      // Simple 60-mo representative financing factor (~0.0205/mo)
-      const mo60 = Math.round(midpoint * 0.0205);
-      const savings = Math.round(midpoint * 0.27);
+    const mid = (low + high) / 2;
+    const apr12 = Math.round(mid / 12);
+    const mo60 = Math.round(mid * 0.0205);
+    const savings = Math.round(mid * 0.27);
+    const franTotal = Math.round((mid + savings) / 10) * 10;
 
-      return {
-        lowTotal: low,
-        highTotal: high,
-        zeroAprMonthly: apr12,
-        lowMonthly: mo60,
-        franchiseSavings: savings,
-      };
-    }, [activeOption, quantity, isFinishedSpace, includeBatteryBackup]);
+    return {
+      lowTotal: low,
+      highTotal: high,
+      midpoint: Math.round(mid / 10) * 10,
+      franchiseTotal: franTotal,
+      zeroAprMonthly: apr12,
+      lowMonthly: mo60,
+      franchiseSavings: savings,
+    };
+  }, [activeOption, quantity, isFinishedSpace, includeBatteryBackup]);
 
   const sliderPercent =
     ((quantity - activeOption.min) / (activeOption.max - activeOption.min)) *
     100;
 
+  const ironridgeBarPercent = Math.round((midpoint / franchiseTotal) * 100);
   const formattedRange = `${formatMoney(lowTotal)} - ${formatMoney(highTotal)}`;
 
   const handleLockClick = () => {
     const unitDisplay =
-      activeOption.unitSingular === "ft" || activeOption.unitSingular === "sq ft"
+      activeOption.unitSingular === "ft" ||
+      activeOption.unitSingular === "sq ft"
         ? `${quantity} ${activeOption.unitSingular}`
         : `${quantity} ${activeOption.unitSingular}${quantity > 1 ? "s" : ""}`;
 
@@ -224,7 +238,7 @@ export function CostEstimator({ id, onLockEstimate }: CostEstimatorProps) {
                 Configure Your Repair Scope
               </h3>
             </div>
-            <span className="inline-flex items-center gap-1.5 rounded-full bg-[#F3F2EE] px-3 py-1 text-xs font-semibold text-zinc-700">
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-[#F3F2EE] border border-zinc-900/6 px-3 py-1 text-xs font-semibold text-zinc-700">
               <Sparkles className="h-3.5 w-3.5 text-[#C85A32]" />
               Real Local Rates
             </span>
@@ -232,8 +246,8 @@ export function CostEstimator({ id, onLockEstimate }: CostEstimatorProps) {
 
           {/* 1. Repair Category Pills */}
           <div className="space-y-2.5">
-            <p className="text-xs font-semibold uppercase tracking-wider text-zinc-500">
-              1. Select Repair System
+            <p className="font-mono-spec text-[11px] font-semibold uppercase tracking-wider text-zinc-500">
+              01 // Select Repair System
             </p>
             <div className="flex flex-wrap gap-2">
               {ESTIMATOR_OPTIONS.map((opt) => {
@@ -261,13 +275,13 @@ export function CostEstimator({ id, onLockEstimate }: CostEstimatorProps) {
           </div>
 
           {/* 2. Dynamic Scope Slider */}
-          <div className="space-y-3 rounded-2xl bg-[#F7F6F2] p-5">
+          <div className="space-y-3 rounded-2xl bg-[#F7F6F2] border border-zinc-900/6 p-5">
             <div className="flex items-center justify-between gap-4">
               <label
                 htmlFor="estimator-scope-slider"
                 className="text-xs sm:text-sm font-semibold text-[#18181B]"
               >
-                2. Estimated {activeOption.unitLabel}
+                02 // Estimated {activeOption.unitLabel}
               </label>
               <span className="font-mono-spec tabular-nums-spec text-lg sm:text-xl font-bold text-[#C85A32]">
                 {quantity.toLocaleString()}{" "}
@@ -303,8 +317,8 @@ export function CostEstimator({ id, onLockEstimate }: CostEstimatorProps) {
 
           {/* 3. Site Condition Toggles */}
           <div className="space-y-2.5">
-            <p className="text-xs font-semibold uppercase tracking-wider text-zinc-500">
-              3. Site Conditions &amp; Storm Protection
+            <p className="font-mono-spec text-[11px] font-semibold uppercase tracking-wider text-zinc-500">
+              03 // Site Conditions &amp; Storm Protection
             </p>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <button
@@ -314,7 +328,7 @@ export function CostEstimator({ id, onLockEstimate }: CostEstimatorProps) {
                 className={`rounded-2xl p-3.5 text-left transition-all flex items-start gap-3 cursor-pointer border ${
                   isFinishedSpace
                     ? "bg-[#18181B] text-white border-[#18181B]"
-                    : "bg-[#F7F6F2] text-[#18181B] border-transparent hover:bg-[#EFECE6]"
+                    : "bg-[#F7F6F2] text-[#18181B] border-zinc-900/6 hover:bg-[#EFECE6]"
                 }`}
               >
                 <span
@@ -348,7 +362,7 @@ export function CostEstimator({ id, onLockEstimate }: CostEstimatorProps) {
                   className={`rounded-2xl p-3.5 text-left transition-all flex items-start gap-3 cursor-pointer border ${
                     includeBatteryBackup
                       ? "bg-[#18181B] text-white border-[#18181B]"
-                      : "bg-[#F7F6F2] text-[#18181B] border-transparent hover:bg-[#EFECE6]"
+                      : "bg-[#F7F6F2] text-[#18181B] border-zinc-900/6 hover:bg-[#EFECE6]"
                   }`}
                 >
                   <span
@@ -374,7 +388,7 @@ export function CostEstimator({ id, onLockEstimate }: CostEstimatorProps) {
                   </div>
                 </button>
               ) : (
-                <div className="rounded-2xl p-3.5 bg-[#F3F2EE]/70 flex items-start gap-3 opacity-85">
+                <div className="rounded-2xl p-3.5 bg-[#F3F2EE]/80 border border-zinc-900/6 flex items-start gap-3">
                   <ShieldCheck className="h-5 w-5 text-[#1E6B4B] shrink-0 mt-0.5" />
                   <div>
                     <p className="text-xs sm:text-sm font-semibold text-[#18181B]">
@@ -390,83 +404,121 @@ export function CostEstimator({ id, onLockEstimate }: CostEstimatorProps) {
           </div>
         </div>
 
-        {/* Right 5 Cols: Dark Obsidian Live Output & Financing Panel */}
-        <div className="lg:col-span-5 bg-structural-grid text-white p-6 sm:p-9 flex flex-col justify-between space-y-6">
-          <div className="space-y-5">
+        {/* Right 5 Cols: Dark Obsidian Live Odometer Output & Franchise Overhead Bar */}
+        <SpotlightSurface className="lg:col-span-5 bg-structural-grid surface-grain text-white p-6 sm:p-9 flex flex-col justify-between space-y-6">
+          <div className="relative z-10 space-y-5">
             <div className="flex items-center justify-between gap-2">
               <span className="font-mono-spec text-[11px] font-semibold uppercase tracking-widest text-[#E8845F]">
                 INSTANT ESTIMATE RANGE
               </span>
-              <span className="inline-flex items-center gap-1 rounded-full bg-white/10 px-2.5 py-1 text-[11px] font-medium text-zinc-200">
+              <span className="inline-flex items-center gap-1 rounded-full bg-white/10 border border-white/10 px-2.5 py-1 text-[11px] font-medium text-zinc-200">
                 <Clock className="h-3 w-3 text-[#E8845F]" />
                 {activeOption.duration}
               </span>
             </div>
 
             <div>
-              <p className="font-heading text-3xl sm:text-4xl font-bold tracking-tight text-white tabular-nums-spec">
-                {formattedRange}
+              <p className="font-heading text-3xl sm:text-[38px] font-bold tracking-tight text-white tabular-nums-spec leading-none">
+                <RollingNumber value={lowTotal} prefix="$" roundTo={10} />
+                <span className="text-zinc-500 mx-1.5">–</span>
+                <RollingNumber value={highTotal} prefix="$" roundTo={10} />
               </p>
-              <p className="text-xs text-zinc-400 mt-1.5">
-                Includes full materials, in-house installation &amp; clean-up.
+              <p className="text-xs text-zinc-400 mt-2">
+                Includes full materials, in-house W-2 installation &amp; clean-up.
               </p>
             </div>
 
-            {/* Monthly Financing Breakdown */}
+            {/* Monthly Financing Breakdown with Odometer Roll */}
             <div className="grid grid-cols-2 gap-3 pt-1">
-              <div className="rounded-2xl bg-white/[0.06] border border-white/10 p-3.5">
+              <div className="rounded-2xl bg-white/[0.05] border border-white/10 p-3.5">
                 <p className="text-[11px] font-medium text-zinc-400">
                   0% APR (12 Months)
                 </p>
-                <p className="font-heading text-xl font-bold text-white tabular-nums-spec mt-1">
-                  ${zeroAprMonthly.toLocaleString()}
+                <p className="font-heading text-xl font-bold text-white mt-1">
+                  <RollingNumber value={zeroAprMonthly} prefix="$" />
                   <span className="text-xs font-normal text-zinc-400">/mo</span>
                 </p>
               </div>
-              <div className="rounded-2xl bg-white/[0.06] border border-white/10 p-3.5">
+              <div className="rounded-2xl bg-white/[0.05] border border-white/10 p-3.5">
                 <p className="text-[11px] font-medium text-zinc-400">
                   Low Monthly (60 Mo)
                 </p>
-                <p className="font-heading text-xl font-bold text-white tabular-nums-spec mt-1">
-                  ${lowMonthly.toLocaleString()}
+                <p className="font-heading text-xl font-bold text-white mt-1">
+                  <RollingNumber value={lowMonthly} prefix="$" />
                   <span className="text-xs font-normal text-zinc-400">/mo</span>
                 </p>
               </div>
             </div>
 
-            {/* Franchise Savings & Warranty Specs */}
-            <div className="space-y-2.5 pt-2 border-t border-white/10 text-xs text-zinc-300">
-              <div className="flex items-center justify-between">
-                <span className="text-zinc-400">
-                  Est. Savings vs. National Franchises
+            {/* Visual Cost Composition Bar: Ironridge Direct vs. National Franchise Overhead */}
+            <div className="rounded-2xl bg-white/[0.04] border border-white/10 p-4 space-y-3">
+              <div className="flex items-center justify-between text-[11px]">
+                <span className="font-mono-spec uppercase tracking-wider text-zinc-300">
+                  Direct vs. Franchise Markup
                 </span>
-                <span className="font-mono-spec font-bold text-emerald-400 tabular-nums-spec">
-                  ~${franchiseSavings.toLocaleString()} saved
+                <span className="font-mono-spec font-bold text-emerald-400">
+                  ~<RollingNumber value={franchiseSavings} prefix="$" roundTo={10} /> saved
                 </span>
               </div>
-              <div className="flex items-center justify-between">
-                <span className="text-zinc-400">Warranty Protection</span>
-                <span className="font-semibold text-white">
-                  Lifetime Transferable
-                </span>
+
+              <div className="space-y-2">
+                <div className="space-y-1">
+                  <div className="flex items-center justify-between text-[11px] text-zinc-200">
+                    <span className="font-semibold">Ironridge Independent Avg.</span>
+                    <span className="font-mono-spec">
+                      <RollingNumber value={midpoint} prefix="$" roundTo={10} />
+                    </span>
+                  </div>
+                  <div className="h-2 w-full rounded-full bg-white/10 overflow-hidden">
+                    <div
+                      className="h-full rounded-full bg-[#1E6B4B] transition-[width] duration-300"
+                      style={{ width: `${ironridgeBarPercent}%` }}
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-1">
+                  <div className="flex items-center justify-between text-[11px] text-zinc-400">
+                    <span>Typical Franchise (+27% Royalty &amp; Comm.)</span>
+                    <span className="font-mono-spec line-through decoration-[#C85A32]">
+                      <RollingNumber
+                        value={franchiseTotal}
+                        prefix="$"
+                        roundTo={10}
+                      />
+                    </span>
+                  </div>
+                  <div className="h-2 w-full rounded-full bg-white/10 overflow-hidden flex">
+                    <div
+                      className="h-full bg-zinc-500/70 transition-[width] duration-300"
+                      style={{ width: `${ironridgeBarPercent}%` }}
+                    />
+                    <div
+                      className="h-full bg-[#C85A32]/85 transition-[width] duration-300"
+                      style={{ width: `${100 - ironridgeBarPercent}%` }}
+                    />
+                  </div>
+                </div>
               </div>
             </div>
           </div>
 
-          <div className="space-y-2.5 pt-2">
-            <button
-              type="button"
-              onClick={handleLockClick}
-              className="w-full inline-flex items-center justify-center gap-2 rounded-full bg-[#C85A32] hover:bg-[#B04A25] px-6 py-4 text-sm sm:text-base font-semibold text-white shadow-lg transition-all cursor-pointer active:scale-[0.99]"
-            >
-              <span>Lock Estimate &amp; Book Free Inspection</span>
-              <ArrowUpRight className="h-4 w-4" />
-            </button>
+          <div className="relative z-10 space-y-2.5 pt-2">
+            <MagneticButton className="w-full">
+              <button
+                type="button"
+                onClick={handleLockClick}
+                className="group w-full inline-flex items-center justify-center gap-2 rounded-full bg-[#C85A32] hover:bg-[#B04A25] px-6 py-4 text-sm sm:text-base font-semibold text-white shadow-[0_14px_34px_-10px_rgba(200,90,50,0.65)] transition-all cursor-pointer active:scale-[0.99]"
+              >
+                <span>Lock Estimate &amp; Book Free Inspection</span>
+                <ArrowUpRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
+              </button>
+            </MagneticButton>
             <p className="text-center text-[11px] text-zinc-400">
               Exact laser &amp; moisture quote locked in writing for 30 days.
             </p>
           </div>
-        </div>
+        </SpotlightSurface>
       </div>
     </div>
   );

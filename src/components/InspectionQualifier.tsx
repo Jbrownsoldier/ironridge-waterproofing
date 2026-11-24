@@ -20,6 +20,10 @@ import {
   Sparkles,
   RotateCcw,
   MessageSquare,
+  Copy,
+  Check,
+  Loader2,
+  AlertCircle,
 } from "lucide-react";
 import { siteConfig } from "@/config/site";
 import { Progress } from "@/components/ui/progress";
@@ -57,6 +61,10 @@ interface InspectionQualifierProps {
   preset?: QualifierPreset | null;
 }
 
+interface SubmittedReceipt extends Step4FormValues {
+  dispatchId: string;
+}
+
 const iconMap = {
   Droplets,
   Split,
@@ -90,9 +98,11 @@ export function InspectionQualifier({ preset }: InspectionQualifierProps) {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const stepHeadingRef = useRef<HTMLHeadingElement | null>(null);
 
-  const [submittedData, setSubmittedData] = useState<Step4FormValues | null>(
+  const [submittedData, setSubmittedData] = useState<SubmittedReceipt | null>(
     null
   );
+  const [submitError, setSubmitError] = useState<string | null>(null);
+  const [copiedRef, setCopiedRef] = useState(false);
 
   const {
     register,
@@ -116,6 +126,7 @@ export function InspectionQualifier({ preset }: InspectionQualifierProps) {
   useEffect(() => {
     if (!preset) return;
     setSubmittedData(null);
+    setSubmitError(null);
 
     if (preset.problemId) {
       setSelectedProblemId(preset.problemId);
@@ -189,17 +200,61 @@ export function InspectionQualifier({ preset }: InspectionQualifierProps) {
     setStep(2);
   };
 
-  const onSubmitStep4 = (values: Step4FormValues) => {
-    setSubmittedData(values);
+  const onSubmitStep4 = async (values: Step4FormValues) => {
+    setSubmitError(null);
+    try {
+      const response = await fetch("/api/inspection", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          ...values,
+          problemId: selectedProblemId,
+          problemLabel: selectedProblemObj.label,
+          spaceType,
+          urgency,
+          secondOpinionMode: secondOpinionBanner,
+          estimateSummary: estimateBanner,
+          photoAttached: Boolean(photoFile),
+          photoFilename: photoFile?.name ?? null,
+        }),
+      });
+
+      const payload = await response.json();
+      if (!response.ok || !payload.ok) {
+        setSubmitError(
+          payload.error ||
+            "Could not log your inspection request. Please call (614) 555-0194."
+        );
+        return;
+      }
+
+      setSubmittedData({
+        ...values,
+        dispatchId: payload.dispatchId || "IR-2026-LOGGED",
+      });
+    } catch {
+      setSubmitError(
+        "Connection interrupted. Please try again or call our Columbus desk at (614) 555-0194."
+      );
+    }
   };
 
-  const handleResetDemo = () => {
+  const handleResetProperty = () => {
     setSubmittedData(null);
+    setSubmitError(null);
+    setCopiedRef(false);
     handleRemovePhoto();
     resetForm();
     setSecondOpinionBanner(false);
     setEstimateBanner(null);
     setStep(1);
+  };
+
+  const handleCopyDispatchId = () => {
+    if (!submittedData?.dispatchId) return;
+    navigator.clipboard?.writeText(submittedData.dispatchId).catch(() => {});
+    setCopiedRef(true);
+    window.setTimeout(() => setCopiedRef(false), 2000);
   };
 
   const isFiveDigitZip = /^\d{5}$/.test(watchedZip || "");
@@ -217,13 +272,13 @@ export function InspectionQualifier({ preset }: InspectionQualifierProps) {
       id="inspection-qualifier"
       className="w-full rounded-3xl surface-elevated text-[#18181B] overflow-hidden transition-shadow"
     >
-      {/* Stitch Architectural Diagnostic Header */}
+      {/* Architectural Diagnostic Header */}
       <div className="px-6 pt-6 pb-4 sm:px-7 sm:pt-7">
         <div className="flex items-center justify-between gap-2 mb-3">
           <div>
             <span className="font-mono-spec text-[11px] font-medium uppercase tracking-widest text-zinc-400">
               {submittedData
-                ? "DISPATCH CONFIRMED"
+                ? `DISPATCH REF // ${submittedData.dispatchId}`
                 : `STEP 0${step} / 04 • ${siteConfig.qualifier.timeEstimate.toUpperCase()}`}
             </span>
             <h2 className="font-heading text-xl sm:text-[22px] font-bold text-[#18181B] tracking-tight mt-0.5">
@@ -237,7 +292,7 @@ export function InspectionQualifier({ preset }: InspectionQualifierProps) {
           aria-label={`Inspection qualifier step ${step} of 4`}
         />
 
-        {/* Stitch Tonal Step Tracker Pills */}
+        {/* Tonal Step Tracker Pills */}
         {!submittedData && (
           <div className="grid grid-cols-4 gap-1.5 mt-3">
             {stepLabels.map((label, idx) => {
@@ -313,38 +368,57 @@ export function InspectionQualifier({ preset }: InspectionQualifierProps) {
       <div className="px-6 pb-6 pt-1 sm:px-7 sm:pb-7">
         <AnimatePresence mode="wait">
           {submittedData ? (
-            /* POST-SUBMIT STATE — Simulated Instant SMS Confirmation Mockup */
+            /* POST-SUBMIT STATE — Confirmed Dispatch Receipt + SMS Confirmation */
             <motion.div
               key="submitted"
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10 }}
-              transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
+              transition={{ duration: 0.28, ease: [0.16, 1, 0.3, 1] }}
               role="status"
               aria-live="polite"
               className="space-y-5"
             >
-              <div className="rounded-2xl bg-[#1E6B4B]/10 p-4 flex items-start gap-3">
-                <CheckCircle2 className="h-5 w-5 text-[#1E6B4B] shrink-0 mt-0.5" />
-                <div className="space-y-1 text-sm">
-                  <p className="font-heading text-base font-bold text-[#1E6B4B]">
-                    Inspection Request Logged (Columbus Desk Notified)
-                  </p>
-                  <p className="text-zinc-600 text-xs sm:text-sm">
-                    <strong className="text-[#18181B]">
-                      {selectedProblemObj.label}
-                    </strong>{" "}
-                    • {spaceType} ({urgency}) • ZIP{" "}
-                    <strong className="text-[#18181B]">
-                      {submittedData.zipCode}
-                    </strong>
-                  </p>
-                  {estimateBanner && (
-                    <p className="text-xs font-medium text-[#1E6B4B] pt-0.5">
-                      Locked Scope: {estimateBanner}
+              <div className="rounded-2xl bg-[#1E6B4B]/10 border border-[#1E6B4B]/15 p-4 flex items-start justify-between gap-3">
+                <div className="flex items-start gap-3">
+                  <CheckCircle2 className="h-5 w-5 text-[#1E6B4B] shrink-0 mt-0.5" />
+                  <div className="space-y-1 text-sm">
+                    <p className="font-heading text-base font-bold text-[#1E6B4B]">
+                      Inspection Request Logged (Columbus Desk Notified)
                     </p>
-                  )}
+                    <p className="text-zinc-600 text-xs sm:text-sm">
+                      <strong className="text-[#18181B]">
+                        {selectedProblemObj.label}
+                      </strong>{" "}
+                      • {spaceType} ({urgency}) • ZIP{" "}
+                      <strong className="text-[#18181B]">
+                        {submittedData.zipCode}
+                      </strong>
+                    </p>
+                    {estimateBanner && (
+                      <p className="text-xs font-medium text-[#1E6B4B] pt-0.5">
+                        Locked Scope: {estimateBanner}
+                      </p>
+                    )}
+                  </div>
                 </div>
+                <button
+                  type="button"
+                  onClick={handleCopyDispatchId}
+                  className="inline-flex items-center gap-1 rounded-full bg-white px-2.5 py-1 font-mono-spec text-[10px] font-semibold text-[#18181B] border border-zinc-200 hover:border-[#C85A32] transition-colors cursor-pointer shrink-0"
+                >
+                  {copiedRef ? (
+                    <>
+                      <Check className="h-3 w-3 text-[#1E6B4B]" />
+                      <span>Copied</span>
+                    </>
+                  ) : (
+                    <>
+                      <Copy className="h-3 w-3 text-zinc-400" />
+                      <span>{submittedData.dispatchId}</span>
+                    </>
+                  )}
+                </button>
               </div>
 
               {photoPreviewUrl && (
@@ -365,7 +439,7 @@ export function InspectionQualifier({ preset }: InspectionQualifierProps) {
                 </div>
               )}
 
-              {/* Realistic iPhone SMS Preview Card */}
+              {/* Dispatch SMS Confirmation Card */}
               <div className="rounded-2xl bg-[#F3F2EE] p-4">
                 <div className="flex items-center justify-between pb-3 mb-3 border-b border-zinc-200/80">
                   <div className="flex items-center gap-2.5">
@@ -374,15 +448,15 @@ export function InspectionQualifier({ preset }: InspectionQualifierProps) {
                     </div>
                     <div>
                       <p className="text-xs font-bold text-[#18181B] leading-none">
-                        Ironridge Dispatch • Just Now
+                        Ironridge Dispatch • Ref {submittedData.dispatchId}
                       </p>
                       <p className="text-[11px] text-zinc-500 mt-0.5">
-                        SMS to {submittedData.phone}
+                        Queued SMS to {submittedData.phone}
                       </p>
                     </div>
                   </div>
                   <span className="inline-flex items-center gap-1 rounded-full bg-[#1E6B4B]/15 px-2.5 py-0.5 text-[10px] font-semibold text-[#1E6B4B]">
-                    ● Delivered
+                    ● Logged
                   </span>
                 </div>
 
@@ -391,8 +465,12 @@ export function InspectionQualifier({ preset }: InspectionQualifierProps) {
                   <strong className="text-[#18181B]">
                     {submittedData.fullName.trim().split(/\s+/)[0]}
                   </strong>
-                  , this is Mark Callahan&apos;s team at Ironridge Foundation.
-                  We got your{" "}
+                  , this is Mark Callahan&apos;s team at Ironridge Foundation
+                  (Ref{" "}
+                  <strong className="font-mono-spec text-xs text-[#18181B]">
+                    {submittedData.dispatchId}
+                  </strong>
+                  ). We got your{" "}
                   <strong className="text-[#18181B]">
                     {selectedProblemObj.label}
                   </strong>{" "}
@@ -402,7 +480,7 @@ export function InspectionQualifier({ preset }: InspectionQualifierProps) {
                   </strong>
                   . A licensed specialist (not a call center) will call you
                   within 15 minutes to lock in your free inspection window. Need
-                  us sooner? Reply <strong>URGENT</strong> or call{" "}
+                  us sooner? Call{" "}
                   <a
                     href={siteConfig.company.phoneHref}
                     className="font-semibold text-[#C85A32] underline"
@@ -423,22 +501,22 @@ export function InspectionQualifier({ preset }: InspectionQualifierProps) {
                 </a>
                 <button
                   type="button"
-                  onClick={handleResetDemo}
+                  onClick={handleResetProperty}
                   className="inline-flex items-center gap-1.5 text-xs font-semibold text-zinc-500 hover:text-[#18181B] cursor-pointer"
                 >
                   <RotateCcw className="h-3.5 w-3.5" />
-                  <span>Reset Demo Form</span>
+                  <span>Submit Another Property</span>
                 </button>
               </div>
             </motion.div>
           ) : step === 1 ? (
-            /* STEP 1 — Stitch Tonal Option Tiles with Hover Conduit Accent Bar */
+            /* STEP 1 — Tonal Option Tiles with Hover Conduit Accent Bar */
             <motion.div
               key="step1"
               initial={{ opacity: 0, x: -10 }}
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: 10 }}
-              transition={{ duration: 0.24, ease: [0.22, 1, 0.36, 1] }}
+              transition={{ duration: 0.24, ease: [0.16, 1, 0.3, 1] }}
               className="space-y-3.5"
             >
               <div>
@@ -469,7 +547,6 @@ export function InspectionQualifier({ preset }: InspectionQualifierProps) {
                           : "bg-[#F7F6F2] hover:bg-[#EFECE6]"
                       }`}
                     >
-                      {/* Stitch Hover Conduit Left Accent Bar */}
                       <span
                         className={`absolute left-0 top-0 bottom-0 w-1 bg-[#C85A32] transition-transform duration-200 ${
                           isSelected
@@ -515,7 +592,7 @@ export function InspectionQualifier({ preset }: InspectionQualifierProps) {
               initial={{ opacity: 0, x: 12 }}
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: -12 }}
-              transition={{ duration: 0.24, ease: [0.22, 1, 0.36, 1] }}
+              transition={{ duration: 0.24, ease: [0.16, 1, 0.3, 1] }}
               className="space-y-5"
             >
               <div className="flex items-center justify-between">
@@ -612,7 +689,7 @@ export function InspectionQualifier({ preset }: InspectionQualifierProps) {
               initial={{ opacity: 0, x: 12 }}
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: -12 }}
-              transition={{ duration: 0.24, ease: [0.22, 1, 0.36, 1] }}
+              transition={{ duration: 0.24, ease: [0.16, 1, 0.3, 1] }}
               className="space-y-4"
             >
               <div className="flex items-center justify-between">
@@ -732,7 +809,7 @@ export function InspectionQualifier({ preset }: InspectionQualifierProps) {
               </div>
             </motion.div>
           ) : (
-            /* STEP 4 — Stitch Animated Focus Conduit Inputs */
+            /* STEP 4 — Validated Live Dispatch Form */
             <motion.form
               key="step4"
               onSubmit={handleSubmit(onSubmitStep4)}
@@ -740,7 +817,7 @@ export function InspectionQualifier({ preset }: InspectionQualifierProps) {
               initial={{ opacity: 0, x: 12 }}
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: -12 }}
-              transition={{ duration: 0.24, ease: [0.22, 1, 0.36, 1] }}
+              transition={{ duration: 0.24, ease: [0.16, 1, 0.3, 1] }}
               className="space-y-4"
             >
               <div className="flex items-center justify-between">
@@ -760,6 +837,16 @@ export function InspectionQualifier({ preset }: InspectionQualifierProps) {
                   <span>Back</span>
                 </button>
               </div>
+
+              {submitError && (
+                <div
+                  role="alert"
+                  className="rounded-2xl bg-red-50 border border-red-200 px-3.5 py-2.5 flex items-start gap-2 text-xs text-red-700"
+                >
+                  <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" />
+                  <span>{submitError}</span>
+                </div>
+              )}
 
               <div className="space-y-1.5">
                 <label
@@ -937,10 +1024,19 @@ export function InspectionQualifier({ preset }: InspectionQualifierProps) {
               <button
                 type="submit"
                 disabled={isSubmitting}
-                className="w-full flex items-center justify-center gap-2 rounded-full bg-[#C85A32] hover:bg-[#B04A25] px-6 py-4 text-base font-semibold text-white shadow-md transition-all cursor-pointer active:scale-[0.99] disabled:opacity-60"
+                className="w-full flex items-center justify-center gap-2 rounded-full bg-[#C85A32] hover:bg-[#B04A25] px-6 py-4 text-base font-semibold text-white shadow-md transition-all cursor-pointer active:scale-[0.99] disabled:opacity-65"
               >
-                <span>{siteConfig.qualifier.submitButtonLabel}</span>
-                <ArrowRight className="h-4 w-4" />
+                {isSubmitting ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    <span>Logging With Columbus Desk...</span>
+                  </>
+                ) : (
+                  <>
+                    <span>{siteConfig.qualifier.submitButtonLabel}</span>
+                    <ArrowRight className="h-4 w-4" />
+                  </>
+                )}
               </button>
 
               <div className="flex items-center justify-center gap-1.5 text-center text-xs text-zinc-500">

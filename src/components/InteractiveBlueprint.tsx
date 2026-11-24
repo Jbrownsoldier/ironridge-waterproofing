@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
+import Image from "next/image";
 import {
   ArrowUpRight,
   Compass,
@@ -8,8 +9,21 @@ import {
   ShieldCheck,
   Layers,
   Camera,
+  CloudRain,
+  Sun,
 } from "lucide-react";
+import gsap from "gsap";
+import { DrawSVGPlugin } from "gsap/DrawSVGPlugin";
+import { useGSAP } from "@gsap/react";
+import { useReducedMotion } from "framer-motion";
 import { siteConfig } from "@/config/site";
+import { SpotlightSurface } from "@/components/motion/EditorialMotion";
+
+if (typeof window !== "undefined") {
+  gsap.registerPlugin(DrawSVGPlugin, useGSAP);
+}
+
+export type SimulationState = "baseline" | "storm" | "protected";
 
 export interface BlueprintZone {
   id: string;
@@ -26,12 +40,12 @@ export const BLUEPRINT_ZONES: BlueprintZone[] = [
   {
     id: "active-leak",
     code: "ZONE 01 // HYDROSTATIC COVE JOINT",
-    shortLabel: "Cove Joint Leak",
+    shortLabel: "Cove Joint",
     title: "Wall-Floor Hydrostatic Seepage",
     solution: "Sub-Floor Perimeter French Drain + Rigid Vapor Wall",
     metrics: "1-2 Days • 0% Exterior Digging",
     priceHint: "$4,500 - $10,000",
-    pos: { left: "34%", top: "73%" },
+    pos: { left: "34%", top: "74%" },
   },
   {
     id: "wall-cracks",
@@ -69,33 +83,84 @@ interface InteractiveBlueprintProps {
   activeZoneId: string;
   onSelectZone: (zoneId: string) => void;
   onDiagnoseZone: (zoneId: string) => void;
+  simulationState?: SimulationState;
+  onSimulationStateChange?: (state: SimulationState) => void;
 }
 
 export function InteractiveBlueprint({
   activeZoneId,
   onSelectZone,
   onDiagnoseZone,
+  simulationState,
+  onSimulationStateChange,
 }: InteractiveBlueprintProps) {
+  const prefersReducedMotion = useReducedMotion();
   const [viewMode, setViewMode] = useState<"blueprint" | "photo">("blueprint");
+  const [internalSim, setInternalSim] = useState<SimulationState>("protected");
+  const svgRef = useRef<SVGSVGElement | null>(null);
+
+  const simState = simulationState ?? internalSim;
+  const setSimState = (next: SimulationState) => {
+    setInternalSim(next);
+    onSimulationStateChange?.(next);
+  };
 
   const activeZone =
     BLUEPRINT_ZONES.find((z) => z.id === activeZoneId) || BLUEPRINT_ZONES[0];
 
+  // Animate Ironridge engineering retrofit drawing in via GSAP DrawSVGPlugin
+  useGSAP(
+    () => {
+      if (prefersReducedMotion || viewMode !== "blueprint") return;
+      if (simState === "protected") {
+        gsap.fromTo(
+          ".ironridge-draw-fix",
+          { drawSVG: "0%" },
+          {
+            drawSVG: "100%",
+            duration: 0.95,
+            stagger: 0.12,
+            ease: "power3.out",
+          }
+        );
+      }
+    },
+    { scope: svgRef, dependencies: [simState, viewMode, prefersReducedMotion] }
+  );
+
+  const isStorm = simState === "storm";
+  const isProtected = simState === "protected";
+
+  const interiorHumidity = isStorm ? "84% RH" : isProtected ? "44% RH" : "58% RH";
+  const wallDeflection = isStorm
+    ? '+0.42" BOW'
+    : isProtected
+    ? '0.00" LOCKED'
+    : '±0.08" PLUMB';
+
   return (
-    <div className="rounded-3xl bg-[#121418] border border-white/10 shadow-[0_30px_70px_-20px_rgba(0,0,0,0.75)] overflow-hidden">
+    <SpotlightSurface className="rounded-3xl bg-[#111317] border border-white/10 shadow-[0_32px_80px_-20px_rgba(0,0,0,0.8)] overflow-hidden">
       {/* Top Diagnostic Stage Header */}
-      <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-3 sm:px-5 border-b border-white/10 bg-[#0E1014]">
+      <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-3 sm:px-5 border-b border-white/10 bg-[#0D0F13]">
         <div className="flex items-center gap-2">
-          <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
-          <span className="font-mono-spec text-[11px] font-semibold tracking-wider text-zinc-300 uppercase">
-            Central Ohio Foundation Cutaway • Interactive
+          <span
+            className={`h-2 w-2 rounded-full ${
+              isStorm
+                ? "bg-sky-400 animate-ping"
+                : isProtected
+                ? "bg-emerald-400 animate-pulse"
+                : "bg-zinc-400"
+            }`}
+          />
+          <span className="font-mono-spec text-[11px] font-semibold tracking-wider text-zinc-200 uppercase">
+            Hydrostatic Storm &amp; Structural Simulator
           </span>
         </div>
 
         {/* View Mode Toggle */}
         <div
           role="group"
-          aria-label="Hero visualization mode"
+          aria-label="Blueprint visualization mode"
           className="inline-flex items-center rounded-full bg-white/[0.06] p-1 border border-white/10"
         >
           <button
@@ -109,7 +174,7 @@ export function InteractiveBlueprint({
             }`}
           >
             <Layers className="h-3 w-3" />
-            <span>Blueprint</span>
+            <span>Simulator</span>
           </button>
           <button
             type="button"
@@ -127,14 +192,102 @@ export function InteractiveBlueprint({
         </div>
       </div>
 
+      {/* 3-State Physical Environment Controller (Simulator mode only) */}
+      {viewMode === "blueprint" && (
+        <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-2.5 sm:px-5 bg-[#0A0C10] border-b border-white/10">
+          <div
+            role="radiogroup"
+            aria-label="Central Ohio storm simulation state"
+            className="inline-flex flex-wrap items-center gap-1.5"
+          >
+            <button
+              type="button"
+              role="radio"
+              aria-checked={simState === "baseline"}
+              onClick={() => setSimState("baseline")}
+              className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-[11px] font-semibold transition-all cursor-pointer ${
+                simState === "baseline"
+                  ? "bg-zinc-200 text-[#18181B]"
+                  : "bg-white/[0.06] text-zinc-400 hover:text-white"
+              }`}
+            >
+              <Sun className="h-3 w-3" />
+              <span>Dry Baseline</span>
+            </button>
+            <button
+              type="button"
+              role="radio"
+              aria-checked={simState === "storm"}
+              onClick={() => setSimState("storm")}
+              className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-[11px] font-semibold transition-all cursor-pointer ${
+                simState === "storm"
+                  ? "bg-sky-500 text-zinc-950 shadow-[0_0_18px_rgba(56,189,248,0.4)]"
+                  : "bg-white/[0.06] text-zinc-400 hover:text-sky-300"
+              }`}
+            >
+              <CloudRain className="h-3 w-3" />
+              <span>3&quot; Ohio Storm (Unprotected)</span>
+            </button>
+            <button
+              type="button"
+              role="radio"
+              aria-checked={simState === "protected"}
+              onClick={() => setSimState("protected")}
+              className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-[11px] font-semibold transition-all cursor-pointer ${
+                simState === "protected"
+                  ? "bg-[#1E6B4B] text-white shadow-[0_0_18px_rgba(30,107,75,0.45)]"
+                  : "bg-white/[0.06] text-zinc-400 hover:text-emerald-300"
+              }`}
+            >
+              <ShieldCheck className="h-3 w-3" />
+              <span>Ironridge Protected</span>
+            </button>
+          </div>
+
+          {/* Live Sensor Readout Pills */}
+          <div className="hidden sm:flex items-center gap-3 font-mono-spec text-[10px] uppercase tracking-wider">
+            <span className="text-zinc-400">
+              HUMIDITY:{" "}
+              <strong
+                className={
+                  isStorm
+                    ? "text-sky-400"
+                    : isProtected
+                    ? "text-emerald-400"
+                    : "text-zinc-200"
+                }
+              >
+                {interiorHumidity}
+              </strong>
+            </span>
+            <span className="text-zinc-600">|</span>
+            <span className="text-zinc-400">
+              LASER:{" "}
+              <strong
+                className={
+                  isStorm
+                    ? "text-[#E8845F]"
+                    : isProtected
+                    ? "text-emerald-400"
+                    : "text-zinc-200"
+                }
+              >
+                {wallDeflection}
+              </strong>
+            </span>
+          </div>
+        </div>
+      )}
+
       {/* Stage Viewport */}
       {viewMode === "blueprint" ? (
-        <div className="relative aspect-16/9 w-full bg-[#121418] select-none overflow-hidden">
+        <div className="relative aspect-16/9 w-full bg-[#111317] select-none overflow-hidden">
           <svg
+            ref={svgRef}
             viewBox="0 0 680 340"
             className="h-full w-full"
             role="img"
-            aria-label="Interactive architectural cutaway of Central Ohio basement foundation, exterior clay soil pressure, French drain, and dual sump backup system"
+            aria-label="Interactive architectural cutaway simulating Central Ohio hydrostatic clay pressure, laser wall deflection scanning, interior French drain, and dual battery sump system"
           >
             <defs>
               <pattern
@@ -146,19 +299,19 @@ export function InteractiveBlueprint({
                 <path
                   d="M 24 0 L 0 0 0 24"
                   fill="none"
-                  stroke="rgba(255,255,255,0.035)"
+                  stroke="rgba(255,255,255,0.032)"
                   strokeWidth="1"
                 />
               </pattern>
-              <linearGradient
-                id="soil-grad"
-                x1="0%"
-                y1="0%"
-                x2="100%"
-                y2="100%"
-              >
-                <stop offset="0%" stopColor="#1D222B" />
-                <stop offset="100%" stopColor="#15181E" />
+              <linearGradient id="soil-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop
+                  offset="0%"
+                  stopColor={isStorm ? "#182838" : "#1D222B"}
+                />
+                <stop
+                  offset="100%"
+                  stopColor={isStorm ? "#0F1D2C" : "#15181E"}
+                />
               </linearGradient>
               <linearGradient
                 id="water-grad"
@@ -167,19 +320,58 @@ export function InteractiveBlueprint({
                 x2="100%"
                 y2="0%"
               >
-                <stop offset="0%" stopColor="rgba(56,189,248,0.12)" />
-                <stop offset="100%" stopColor="rgba(56,189,248,0.55)" />
+                <stop offset="0%" stopColor="rgba(56,189,248,0.2)" />
+                <stop offset="100%" stopColor="rgba(52,211,153,0.85)" />
+              </linearGradient>
+              <linearGradient
+                id="storm-puddle"
+                x1="0%"
+                y1="0%"
+                x2="100%"
+                y2="0%"
+              >
+                <stop offset="0%" stopColor="rgba(56,189,248,0.68)" />
+                <stop offset="100%" stopColor="rgba(56,189,248,0.08)" />
               </linearGradient>
             </defs>
 
             {/* Technical Grid */}
             <rect width="680" height="340" fill="url(#blueprint-grid)" />
 
+            {/* Animated Storm Rain Above Exterior Grade (Storm & Protected states) */}
+            {(isStorm || isProtected) && (
+              <g
+                stroke="rgba(56,189,248,0.45)"
+                strokeWidth="1.25"
+                strokeDasharray="6 6"
+                className="animate-storm-rain"
+              >
+                <line x1="28" y1="18" x2="16" y2="108" />
+                <line x1="62" y1="10" x2="50" y2="108" />
+                <line x1="98" y1="22" x2="86" y2="108" />
+                <line x1="134" y1="14" x2="122" y2="108" />
+                <line x1="162" y1="26" x2="150" y2="108" />
+              </g>
+            )}
+
             {/* Exterior Ground Grade & Clay Soil Mass (Left) */}
             <path
               d="M 0 112 L 170 112 L 170 284 L 0 284 Z"
               fill="url(#soil-grad)"
             />
+
+            {/* Saturated Water Table Fill Inside Clay Soil */}
+            {(isStorm || isProtected) && (
+              <rect
+                x="0"
+                y={isStorm ? "148" : "212"}
+                width="170"
+                height={isStorm ? "136" : "72"}
+                fill="rgba(56,189,248,0.12)"
+                className="transition-all duration-700"
+              />
+            )}
+
             {/* Exterior Grass / Grade Line */}
             <line
               x1="0"
@@ -190,57 +382,58 @@ export function InteractiveBlueprint({
               strokeWidth="3"
             />
             <text
-              x="22"
-              y="100"
+              x="18"
+              y="98"
               fill="#71717A"
-              fontSize="10"
-              fontFamily="JetBrains Mono, monospace"
+              fontSize="9.5"
+              fontFamily="var(--font-jetbrains), monospace"
             >
               EXTERIOR GRADE
             </text>
             <text
-              x="22"
-              y="148"
-              fill="#52525B"
-              fontSize="10"
-              fontFamily="JetBrains Mono, monospace"
+              x="18"
+              y="142"
+              fill={isStorm ? "#7DD3FC" : "#52525B"}
+              fontSize="9.5"
+              fontFamily="var(--font-jetbrains), monospace"
             >
-              SATURATED OHIO
-            </text>
-            <text
-              x="22"
-              y="162"
-              fill="#52525B"
-              fontSize="10"
-              fontFamily="JetBrains Mono, monospace"
-            >
-              GLACIAL CLAY SOIL
+              {isStorm ? "SATURATED CLAY (HIGH PSI)" : "OHIO GLACIAL CLAY"}
             </text>
 
-            {/* Hydrostatic Pressure Vectors */}
+            {/* Animated Hydrostatic Pressure Vectors Pushing Against Wall */}
             <g
               stroke={
-                activeZoneId === "bowing-walls" || activeZoneId === "active-leak"
+                isStorm
                   ? "#38BDF8"
-                  : "rgba(56,189,248,0.45)"
+                  : activeZoneId === "bowing-walls" ||
+                    activeZoneId === "active-leak"
+                  ? "rgba(56,189,248,0.75)"
+                  : "rgba(56,189,248,0.38)"
               }
-              strokeWidth="1.75"
-              strokeDasharray="4 3"
+              strokeWidth={isStorm ? "2.25" : "1.6"}
+              strokeDasharray="6 4"
+              className={
+                isStorm
+                  ? "animate-water-flow-fast"
+                  : isProtected
+                  ? "animate-water-flow"
+                  : ""
+              }
             >
-              <line x1="92" y1="184" x2="162" y2="184" />
-              <line x1="84" y1="224" x2="162" y2="224" />
-              <line x1="96" y1="258" x2="162" y2="258" />
+              <line x1="72" y1="176" x2="162" y2="176" />
+              <line x1="60" y1="216" x2="162" y2="216" />
+              <line x1="76" y1="256" x2="162" y2="256" />
             </g>
             <g
               fill={
-                activeZoneId === "bowing-walls" || activeZoneId === "active-leak"
+                isStorm
                   ? "#38BDF8"
-                  : "rgba(56,189,248,0.55)"
+                  : "rgba(56,189,248,0.65)"
               }
             >
-              <polygon points="165,184 157,180 157,188" />
-              <polygon points="165,224 157,220 157,228" />
-              <polygon points="165,258 157,254 157,262" />
+              <polygon points="166,176 157,171.5 157,180.5" />
+              <polygon points="166,216 157,211.5 157,220.5" />
+              <polygon points="166,256 157,251.5 157,260.5" />
             </g>
 
             {/* Upper Floor Joist & Living Space Line */}
@@ -254,25 +447,27 @@ export function InteractiveBlueprint({
               strokeWidth="1"
             />
             <text
-              x="335"
+              x="328"
               y="54"
               fill="#71717A"
-              fontSize="10"
-              fontFamily="JetBrains Mono, monospace"
+              fontSize="9.5"
+              fontFamily="var(--font-jetbrains), monospace"
             >
               FIRST FLOOR JOIST ENVELOPE
             </text>
 
-            {/* Poured Concrete Foundation Wall (Left) */}
-            <rect
-              x="170"
-              y="80"
-              width="32"
-              height="194"
+            {/* Poured Concrete Foundation Wall (Left) — Subtle Inward Flex Highlight During Unprotected Storm */}
+            <path
+              d={
+                isStorm
+                  ? "M 170 80 L 202 80 Q 209 178 202 274 L 170 274 Q 177 178 170 80 Z"
+                  : "M 170 80 L 202 80 L 202 274 L 170 274 Z"
+              }
               fill="#3F3F46"
-              stroke="#71717A"
+              stroke={isStorm ? "#E8845F" : "#71717A"}
               strokeWidth="1.5"
             />
+
             {/* Concrete Footing (Left) */}
             <rect
               x="154"
@@ -327,77 +522,163 @@ export function InteractiveBlueprint({
               strokeWidth="1"
             />
 
-            {/* Rigid White Vapor Wall Liner (Highlighted when cove joint or sump active) */}
-            <rect
-              x="202"
-              y="86"
-              width="5"
-              height="172"
-              fill={
-                activeZoneId === "active-leak" || activeZoneId === "crawl-space"
-                  ? "#E4E4E7"
-                  : "#71717A"
-              }
-            />
-
-            {/* Carbon Fiber Reinforcement Strap on Wall (Highlighted for bowing-walls) */}
-            <rect
-              x="197"
-              y="92"
-              width="6"
-              height="158"
-              rx="1"
-              fill={activeZoneId === "bowing-walls" ? "#C85A32" : "#52525B"}
-            />
-            {activeZoneId === "bowing-walls" && (
-              <g stroke="#C85A32" strokeWidth="1.5">
-                <line x1="206" y1="115" x2="238" y2="115" />
+            {/* UNPROTECTED STORM STATE: Standing Water Puddle Seeping Through Cove Joint */}
+            {isStorm && (
+              <g>
+                <rect
+                  x="202"
+                  y="249"
+                  width="248"
+                  height="9"
+                  rx="3"
+                  fill="url(#storm-puddle)"
+                />
                 <text
-                  x="244"
-                  y="119"
-                  fill="#E8845F"
-                  fontSize="10"
-                  fontFamily="JetBrains Mono, monospace"
+                  x="266"
+                  y="238"
+                  fill="#7DD3FC"
+                  fontSize="9.5"
+                  fontWeight="700"
+                  fontFamily="var(--font-jetbrains), monospace"
                 >
-                  CARBON FIBER LOCK
+                  ACTIVE COVE JOINT SEEPAGE
                 </text>
               </g>
             )}
 
-            {/* Diagonal Crack Graphic (Highlighted for wall-cracks) */}
+            {/* IRONRIDGE PROTECTED RETROFIT ELEMENTS (Drawn with GSAP DrawSVGPlugin) */}
+            {isProtected && (
+              <g>
+                {/* Rigid White Vapor Wall Liner */}
+                <path
+                  d="M 205 86 L 205 262"
+                  fill="none"
+                  stroke="#F4F4F5"
+                  strokeWidth="4.5"
+                  strokeLinecap="round"
+                  className="ironridge-draw-fix"
+                />
+
+                {/* Carbon Fiber Reinforcement Strap on Wall */}
+                <path
+                  d="M 199 90 L 199 252"
+                  fill="none"
+                  stroke={
+                    activeZoneId === "bowing-walls" ? "#C85A32" : "#E8845F"
+                  }
+                  strokeWidth="5"
+                  strokeLinecap="round"
+                  className="ironridge-draw-fix"
+                />
+
+                {/* Sub-Floor French Drain Channel + Animated Drainage Flow to Sump */}
+                <circle
+                  cx="230"
+                  cy="284"
+                  r="11"
+                  fill="#09090B"
+                  stroke="#38BDF8"
+                  strokeWidth="2"
+                />
+                <path
+                  d="M 241 284 L 496 284"
+                  fill="none"
+                  stroke="url(#water-grad)"
+                  strokeWidth="4.5"
+                  strokeDasharray="8 5"
+                  className="ironridge-draw-fix animate-water-flow"
+                />
+
+                {/* Freeze-Proof Discharge Riser */}
+                <path
+                  d="M 516 241 L 516 112 L 642 112"
+                  fill="none"
+                  stroke="#34D399"
+                  strokeWidth="4"
+                  strokeLinejoin="round"
+                  strokeDasharray="10 5"
+                  className="ironridge-draw-fix animate-sump-flow"
+                />
+              </g>
+            )}
+
+            {/* Unprotected/Baseline Subtle Wall & Sump Elements */}
+            {!isProtected && (
+              <g>
+                <circle
+                  cx="230"
+                  cy="284"
+                  r="10"
+                  fill="#09090B"
+                  stroke="#3F3F46"
+                  strokeWidth="1.5"
+                  strokeDasharray="3 3"
+                />
+                <path
+                  d="M 516 241 L 516 112 L 642 112"
+                  fill="none"
+                  stroke="#52525B"
+                  strokeWidth="3"
+                  strokeLinejoin="round"
+                />
+              </g>
+            )}
+
+            {/* Diagonal Crack Graphic */}
             <path
               d="M 172 156 L 184 172 L 178 186 L 198 205"
               fill="none"
-              stroke={activeZoneId === "wall-cracks" ? "#E8845F" : "#71717A"}
-              strokeWidth={activeZoneId === "wall-cracks" ? "3" : "1.75"}
+              stroke={
+                isProtected
+                  ? "#34D399"
+                  : activeZoneId === "wall-cracks" || isStorm
+                  ? "#E8845F"
+                  : "#71717A"
+              }
+              strokeWidth={
+                activeZoneId === "wall-cracks" || isStorm ? "3" : "2"
+              }
               strokeLinecap="round"
               strokeLinejoin="round"
             />
 
-            {/* Sub-Floor French Drain Channel + Flow Path to Sump */}
-            <circle
-              cx="230"
-              cy="283"
-              r="11"
-              fill="#09090B"
-              stroke={activeZoneId === "active-leak" ? "#38BDF8" : "#52525B"}
-              strokeWidth="2"
-            />
-            <line
-              x1="241"
-              y1="283"
-              x2="496"
-              y2="283"
-              stroke={
-                activeZoneId === "active-leak" || activeZoneId === "crawl-space"
-                  ? "url(#water-grad)"
-                  : "#3F3F46"
-              }
-              strokeWidth="4"
-              strokeDasharray="6 4"
-            />
+            {/* Animated ±0.125" Digital Laser Plumb Beam Sweep (Active on Bowing Wall Zone) */}
+            {activeZoneId === "bowing-walls" && (
+              <g>
+                <line
+                  x1="214"
+                  y1="88"
+                  x2="214"
+                  y2="254"
+                  stroke="rgba(232,132,95,0.45)"
+                  strokeWidth="1"
+                  strokeDasharray="3 3"
+                />
+                <g className="animate-laser-sweep">
+                  <line
+                    x1="204"
+                    y1="96"
+                    x2="252"
+                    y2="96"
+                    stroke="#FF5A36"
+                    strokeWidth="2"
+                  />
+                  <circle cx="214" cy="96" r="3" fill="#FF5A36" />
+                  <text
+                    x="258"
+                    y="100"
+                    fill="#E8845F"
+                    fontSize="9.5"
+                    fontWeight="700"
+                    fontFamily="var(--font-jetbrains), monospace"
+                  >
+                    LASER PLUMB: {wallDeflection}
+                  </text>
+                </g>
+              </g>
+            )}
 
-            {/* Sealed Sump Basin & Dual Pump + Discharge Pipe (Right) */}
+            {/* Sealed Sump Basin & Dual Pump + Battery Backup Unit (Right) */}
             <rect
               x="496"
               y="244"
@@ -405,55 +686,49 @@ export function InteractiveBlueprint({
               height="56"
               rx="4"
               fill="#09090B"
-              stroke={activeZoneId === "crawl-space" ? "#1E6B4B" : "#71717A"}
+              stroke={isProtected ? "#34D399" : "#71717A"}
               strokeWidth="2"
             />
-            {/* Sealed Radon/Odor Lid */}
             <rect x="492" y="241" width="66" height="5" rx="2" fill="#A1A1AA" />
-            {/* Primary + Backup Discharge Risers */}
-            <path
-              d="M 516 241 L 516 112 L 640 112"
-              fill="none"
-              stroke={activeZoneId === "crawl-space" ? "#34D399" : "#71717A"}
-              strokeWidth="4"
-              strokeLinejoin="round"
-            />
-            {/* Battery Backup Unit */}
             <rect
               x="558"
               y="214"
-              width="26"
-              height="38"
+              width="28"
+              height="40"
               rx="3"
               fill="#18181B"
-              stroke={activeZoneId === "crawl-space" ? "#34D399" : "#52525B"}
+              stroke={isProtected ? "#34D399" : "#52525B"}
               strokeWidth="1.5"
             />
             <circle
-              cx="571"
+              cx="572"
               cy="226"
-              r="3"
-              fill={activeZoneId === "crawl-space" ? "#34D399" : "#52525B"}
+              r="3.5"
+              fill={isProtected ? "#34D399" : isStorm ? "#EF4444" : "#52525B"}
             />
 
-            {/* Subtle Interior Labels */}
+            {/* Subtle Interior Spec Labels */}
             <text
               x="315"
-              y="246"
-              fill="#71717A"
-              fontSize="10"
-              fontFamily="JetBrains Mono, monospace"
+              y={isStorm ? "222" : "246"}
+              fill={isProtected ? "#A1A1AA" : "#71717A"}
+              fontSize="9.5"
+              fontFamily="var(--font-jetbrains), monospace"
             >
-              POURED CONCRETE SLAB
+              {isProtected
+                ? "BONE-DRY POURED SLAB (44% RH)"
+                : "POURED CONCRETE SLAB"}
             </text>
             <text
-              x="472"
+              x="468"
               y="102"
-              fill="#71717A"
-              fontSize="10"
-              fontFamily="JetBrains Mono, monospace"
+              fill={isProtected ? "#34D399" : "#71717A"}
+              fontSize="9.5"
+              fontFamily="var(--font-jetbrains), monospace"
             >
-              FREEZE-PROOF DISCHARGE
+              {isProtected
+                ? "ACTIVE STORM DISCHARGE"
+                : "FREEZE-PROOF DISCHARGE"}
             </text>
           </svg>
 
@@ -469,7 +744,7 @@ export function InteractiveBlueprint({
                 style={{ left: zone.pos.left, top: zone.pos.top }}
                 className={`group absolute -translate-x-1/2 -translate-y-1/2 flex items-center gap-2 rounded-full pl-1.5 pr-3 py-1 text-[11px] font-semibold transition-all cursor-pointer focus-visible:outline-2 focus-visible:outline-white ${
                   isActive
-                    ? "bg-[#C85A32] text-white shadow-[0_0_0_6px_rgba(200,90,50,0.28)] scale-105 z-20"
+                    ? "bg-[#C85A32] text-white shadow-[0_0_0_6px_rgba(200,90,50,0.3)] scale-105 z-20"
                     : "bg-[#18181B]/90 text-zinc-200 border border-white/20 hover:border-[#C85A32] hover:bg-[#18181B] z-10"
                 }`}
               >
@@ -490,11 +765,14 @@ export function InteractiveBlueprint({
           })}
         </div>
       ) : (
-        <div className="relative aspect-16/9 w-full overflow-hidden bg-[#121418]">
-          <img
+        <div className="relative aspect-16/9 w-full overflow-hidden bg-[#111317]">
+          <Image
             src={siteConfig.hero.heroImage}
             alt="Clean newly waterproofed Central Ohio poured concrete basement interior with perimeter drainage and sealed sump system"
-            className="h-full w-full object-cover object-center"
+            fill
+            quality={82}
+            sizes="(max-width: 1024px) 100vw, 55vw"
+            className="object-cover object-center"
           />
           <div
             className="absolute inset-0 bg-gradient-to-t from-zinc-950/75 via-zinc-950/15 to-transparent"
@@ -525,7 +803,7 @@ export function InteractiveBlueprint({
       )}
 
       {/* Live Engineering Telemetry Readout Bar */}
-      <div className="bg-[#0E1014] border-t border-white/10 px-4 py-4 sm:px-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="bg-[#0D0F13] border-t border-white/10 px-4 py-4 sm:px-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="space-y-1 min-w-0">
           <div className="flex flex-wrap items-center gap-2">
             <span className="font-mono-spec text-[11px] font-semibold text-[#E8845F]">
@@ -550,12 +828,12 @@ export function InteractiveBlueprint({
         <button
           type="button"
           onClick={() => onDiagnoseZone(activeZone.id)}
-          className="inline-flex items-center justify-center gap-1.5 rounded-full bg-white text-[#18181B] hover:bg-[#C85A32] hover:text-white px-4 py-2.5 text-xs font-bold transition-colors cursor-pointer shrink-0"
+          className="group inline-flex items-center justify-center gap-1.5 rounded-full bg-white text-[#18181B] hover:bg-[#C85A32] hover:text-white px-4 py-2.5 text-xs font-bold transition-colors cursor-pointer shrink-0"
         >
           <span>Diagnose This Issue</span>
-          <ArrowUpRight className="h-4 w-4" />
+          <ArrowUpRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
         </button>
       </div>
-    </div>
+    </SpotlightSurface>
   );
 }

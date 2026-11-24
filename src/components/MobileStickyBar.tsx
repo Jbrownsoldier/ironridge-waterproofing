@@ -1,30 +1,37 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import { usePathname } from "next/navigation";
 import { Phone, ArrowUpRight } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { siteConfig } from "@/config/site";
 import { useInspectionModal } from "@/context/InspectionModalContext";
 
 export function MobileStickyBar() {
+  const pathname = usePathname();
   const { openInspectionModal } = useInspectionModal();
   const [visible, setVisible] = useState(false);
 
   useEffect(() => {
-    const handleScroll = () => {
-      const heroEl = document.getElementById("top");
-      if (!heroEl) {
-        setVisible(window.scrollY > 360);
-        return;
-      }
-      const rect = heroEl.getBoundingClientRect();
-      setVisible(rect.bottom < 120);
-    };
+    const heroEl = document.getElementById("top");
+    if (!heroEl) {
+      setVisible(true);
+      return;
+    }
 
-    handleScroll();
-    window.addEventListener("scroll", handleScroll, { passive: true });
-    return () => window.removeEventListener("scroll", handleScroll);
-  }, []);
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        setVisible(!entry.isIntersecting);
+      },
+      {
+        rootMargin: "-120px 0px 0px 0px",
+        threshold: 0,
+      }
+    );
+
+    observer.observe(heroEl);
+    return () => observer.disconnect();
+  }, [pathname]);
 
   return (
     <AnimatePresence>
@@ -33,7 +40,7 @@ export function MobileStickyBar() {
           initial={{ y: 80, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
           exit={{ y: 80, opacity: 0 }}
-          transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
+          transition={{ duration: 0.24, ease: [0.16, 1, 0.3, 1] }}
           className="fixed bottom-0 left-0 right-0 z-40 md:hidden bg-[#FAF9F6]/95 backdrop-blur-md border-t border-zinc-200/80 p-3 shadow-[0_-8px_24px_rgba(24,24,27,0.08)]"
         >
           <div className="grid grid-cols-2 gap-2.5 max-w-md mx-auto">

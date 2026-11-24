@@ -1,10 +1,16 @@
 "use client";
 
 import React, { useState } from "react";
+import Image from "next/image";
 import { Check, X, ArrowUpRight, ChevronDown } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { siteConfig } from "@/config/site";
 import { FadeIn } from "@/components/motion/FadeIn";
+import {
+  CurtainReveal,
+  SpotlightSurface,
+  MagneticButton,
+} from "@/components/motion/EditorialMotion";
 import { useInspectionModal } from "@/context/InspectionModalContext";
 
 const comparisonRows = [
@@ -55,35 +61,41 @@ export function OwnerGuarantee() {
       className="py-20 sm:py-24 lg:py-28 bg-[#FAF9F6]"
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <FadeIn className="rounded-3xl bg-[#18181B] text-white overflow-hidden shadow-[0_24px_48px_-12px_rgba(24,24,27,0.16)]">
-          <div className="grid grid-cols-1 lg:grid-cols-12 items-stretch">
-            {/* Left Column: Mark Callahan Documentary Portrait */}
-            <div className="lg:col-span-5 relative min-h-[360px] sm:min-h-[440px] bg-zinc-900">
-              <img
+        <SpotlightSurface className="rounded-3xl bg-[#141518] surface-grain text-white overflow-hidden border border-white/10 shadow-[0_30px_70px_-18px_rgba(24,24,27,0.24)]">
+          <div className="relative z-10 grid grid-cols-1 lg:grid-cols-12 items-stretch">
+            {/* Left Column: Mark Callahan Documentary Portrait (next/image + CurtainReveal) */}
+            <CurtainReveal className="lg:col-span-5 relative min-h-[380px] sm:min-h-[460px] bg-zinc-900 overflow-hidden">
+              <Image
                 src={siteConfig.ownerSection.ownerImage}
                 alt={`${siteConfig.company.ownerName}, ${siteConfig.company.ownerTitle}`}
-                className="h-full w-full object-cover object-top"
+                fill
+                quality={85}
+                sizes="(max-width: 1024px) 100vw, 42vw"
+                className="object-cover object-top"
               />
-              <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-zinc-950/90 via-zinc-950/40 to-transparent p-6 pt-16">
-                <p className="font-heading text-base font-bold text-white">
+              <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-zinc-950/92 via-zinc-950/45 to-transparent p-6 pt-20">
+                <span className="font-mono-spec text-[10px] uppercase tracking-[0.16em] text-[#E8845F]">
+                  FOUNDER &amp; LEAD INSPECTOR • EST. 2007
+                </span>
+                <p className="font-heading text-lg font-bold text-white mt-0.5">
                   {siteConfig.company.ownerName}
                 </p>
                 <p className="text-xs text-zinc-300 mt-0.5">
                   {siteConfig.company.ownerTitle}
                 </p>
               </div>
-            </div>
+            </CurtainReveal>
 
-            {/* Right Column: Editorial Founder's Note */}
+            {/* Right Column: Warm Editorial Serif Founder's Manifesto */}
             <div className="lg:col-span-7 p-7 sm:p-11 lg:p-14 flex flex-col justify-center space-y-6">
-              <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.14em] text-[#C85A32]">
+              <div className="flex items-center gap-2 font-mono-spec text-xs font-semibold uppercase tracking-[0.14em] text-[#E8845F]">
                 <span className="h-1.5 w-1.5 rounded-full bg-[#C85A32]" />
                 <span>{siteConfig.ownerSection.eyebrow}</span>
               </div>
 
               <h2
                 id="owner-guarantee-heading"
-                className="font-heading text-2xl sm:text-4xl font-bold text-white tracking-tight leading-[1.15]"
+                className="text-editorial-quote text-white font-normal"
               >
                 {siteConfig.ownerSection.headline}
               </h2>
@@ -92,10 +104,10 @@ export function OwnerGuarantee() {
                 &ldquo;{siteConfig.ownerSection.body}&rdquo;
               </p>
 
-              <div className="flex flex-wrap gap-y-2 gap-x-6 pt-1 text-xs sm:text-sm font-medium text-zinc-200">
+              <div className="flex flex-wrap gap-y-2.5 gap-x-6 pt-1 text-xs sm:text-sm font-medium text-zinc-200">
                 {siteConfig.ownerSection.credentials.map((cred) => (
                   <span key={cred} className="inline-flex items-center gap-2">
-                    <Check className="h-4 w-4 text-[#C85A32]" />
+                    <Check className="h-4 w-4 text-[#E8845F]" />
                     {cred}
                   </span>
                 ))}
@@ -103,33 +115,35 @@ export function OwnerGuarantee() {
 
               <div className="pt-6 border-t border-white/10 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div>
-                  <p className="font-heading text-lg font-bold text-white">
+                  <p className="font-serif-editorial italic text-2xl text-white leading-none">
                     {siteConfig.ownerSection.signatureName}
                   </p>
-                  <p className="text-xs text-zinc-400">
+                  <p className="text-xs text-zinc-400 mt-1">
                     {siteConfig.ownerSection.signatureTitle}
                   </p>
                 </div>
 
-                <button
-                  type="button"
-                  onClick={() => openInspectionModal()}
-                  className="inline-flex items-center justify-center gap-2 rounded-full bg-[#C85A32] hover:bg-[#B04A25] px-6 py-3.5 text-sm font-semibold text-white transition-all hover:-translate-y-0.5 cursor-pointer shrink-0"
-                >
-                  <span>Schedule With Mark&apos;s Team</span>
-                  <ArrowUpRight className="h-4 w-4" />
-                </button>
+                <MagneticButton>
+                  <button
+                    type="button"
+                    onClick={() => openInspectionModal()}
+                    className="group inline-flex items-center justify-center gap-2 rounded-full bg-[#C85A32] hover:bg-[#B04A25] px-6 py-3.5 text-sm font-semibold text-white transition-all hover:-translate-y-0.5 cursor-pointer shrink-0"
+                  >
+                    <span>Schedule With Mark&apos;s Team</span>
+                    <ArrowUpRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
+                  </button>
+                </MagneticButton>
               </div>
             </div>
           </div>
-        </FadeIn>
+        </SpotlightSurface>
 
         {/* Independent Local Engineers vs. National Franchise Chains Tactile Matrix */}
         <FadeIn
           delay={0.08}
           className="mt-8 rounded-3xl surface-card overflow-hidden"
         >
-          <div className="px-6 py-6 sm:px-9 sm:py-7 border-b border-zinc-200/70 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="px-6 py-6 sm:px-9 sm:py-7 border-b border-zinc-900/8 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div>
               <span className="font-mono-spec text-[11px] font-semibold uppercase tracking-widest text-[#C85A32]">
                 INDEPENDENT VS. NATIONAL FRANCHISES
@@ -144,8 +158,8 @@ export function OwnerGuarantee() {
             </span>
           </div>
 
-          <div className="divide-y divide-zinc-200/70">
-            <div className="hidden md:grid md:grid-cols-12 bg-[#F7F6F2] px-9 py-3 text-xs font-semibold uppercase tracking-wider text-zinc-500">
+          <div className="divide-y divide-zinc-900/8">
+            <div className="hidden md:grid md:grid-cols-12 bg-[#F7F6F2] px-9 py-3 font-mono-spec text-[11px] font-semibold uppercase tracking-wider text-zinc-500">
               <div className="col-span-4">Category</div>
               <div className="col-span-4 text-[#1E6B4B]">
                 Ironridge (Local Independent)
@@ -158,15 +172,10 @@ export function OwnerGuarantee() {
             {comparisonRows.map((row) => {
               const isOpen = activeRowFeature === row.feature;
               return (
-                <motion.div
+                <div
                   key={row.feature}
-                  layout
-                  animate={{
-                    scale: isOpen ? 1.008 : 1,
-                  }}
-                  transition={{ type: "spring", stiffness: 320, damping: 28 }}
                   className={`transition-colors ${
-                    isOpen ? "bg-[#F7F6F2]/80" : "hover:bg-[#FAF9F6]"
+                    isOpen ? "bg-[#F7F6F2]/85" : "hover:bg-[#FAF9F6]"
                   }`}
                 >
                   <button
@@ -212,16 +221,16 @@ export function OwnerGuarantee() {
                         initial={{ opacity: 0, height: 0 }}
                         animate={{ opacity: 1, height: "auto" }}
                         exit={{ opacity: 0, height: 0 }}
-                        transition={{ duration: 0.2 }}
+                        transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
                         className="overflow-hidden px-6 pb-4 sm:px-9"
                       >
-                        <p className="text-xs sm:text-sm text-zinc-600 bg-white rounded-2xl p-4 border border-zinc-200/70">
+                        <p className="text-xs sm:text-sm text-zinc-600 bg-white rounded-2xl p-4 border border-zinc-900/8">
                           {row.explanation}
                         </p>
                       </motion.div>
                     )}
                   </AnimatePresence>
-                </motion.div>
+                </div>
               );
             })}
           </div>
