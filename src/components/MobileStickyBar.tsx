@@ -41,7 +41,7 @@ export function MobileStickyBar() {
           animate={{ y: 0, opacity: 1 }}
           exit={{ y: 80, opacity: 0 }}
           transition={{ duration: 0.24, ease: [0.16, 1, 0.3, 1] }}
-          className="fixed bottom-0 left-0 right-0 z-40 md:hidden bg-[#FAF9F6]/95 backdrop-blur-md border-t border-zinc-200/80 p-3 shadow-[0_-8px_24px_rgba(24,24,27,0.08)]"
+          className="fixed bottom-0 left-0 right-0 z-40 md:hidden bg-[#FAF9F6]/98 border-t border-zinc-200/90 px-3 pt-2.5 pb-[max(0.75rem,env(safe-area-inset-bottom))] shadow-[0_-6px_20px_rgba(24,24,27,0.08)]"
         >
           <div className="grid grid-cols-2 gap-2.5 max-w-md mx-auto">
             <a

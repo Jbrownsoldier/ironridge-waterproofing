@@ -78,7 +78,7 @@ export function InspectionModalProvider({
       {children}
 
       <Dialog open={isOpen} onOpenChange={setIsOpen}>
-        <DialogContent className="max-w-xl p-0 bg-transparent border-0 shadow-none overflow-visible sm:rounded-3xl [&>button]:right-4 [&>button]:top-4 [&>button]:z-20 [&>button]:bg-zinc-100 [&>button]:text-zinc-700 [&>button]:hover:bg-zinc-200">
+        <DialogContent className="w-full max-w-[540px] p-0 bg-transparent border-0 shadow-none overflow-hidden rounded-2xl sm:rounded-3xl max-h-[90dvh]">
           <DialogTitle className="sr-only">
             Book Your Free Structural Inspection
           </DialogTitle>
@@ -88,7 +88,7 @@ export function InspectionModalProvider({
           </DialogDescription>
           <div
             data-lenis-prevent
-            className="max-h-[90vh] overflow-y-auto rounded-3xl shadow-[0_32px_90px_-16px_rgba(0,0,0,0.55)]"
+            className="max-h-[90dvh] overflow-y-auto overscroll-contain rounded-2xl sm:rounded-3xl shadow-[0_28px_80px_-16px_rgba(0,0,0,0.55)]"
           >
             <InspectionQualifier preset={preset} />
           </div>

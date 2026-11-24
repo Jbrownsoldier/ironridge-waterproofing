@@ -20,7 +20,7 @@ export function HeroSection() {
     <section
       id="top"
       aria-label="Hero and Structural Overview"
-      className="relative bg-obsidian-blueprint surface-grain text-white overflow-hidden pt-8 pb-16 sm:pt-12 sm:pb-20 lg:pt-14 lg:pb-24"
+      className="relative bg-obsidian-blueprint surface-grain text-white overflow-hidden pt-6 pb-12 sm:pt-12 sm:pb-20 lg:pt-14 lg:pb-24"
     >
       {/* Subtle Bottom Hairline Transition */}
       <div
@@ -76,12 +76,12 @@ export function HeroSection() {
               </p>
 
               {/* Primary Magnetic Terracotta CTA + Secondary Architectural Cost Estimator */}
-              <div className="flex flex-wrap items-center gap-3.5 pt-1">
-                <MagneticButton>
+              <div className="flex flex-col sm:flex-row sm:flex-wrap items-stretch sm:items-center gap-3 pt-1">
+                <MagneticButton className="w-full sm:w-auto">
                   <button
                     type="button"
                     onClick={() => openInspectionModal()}
-                    className="group inline-flex items-center justify-center gap-2 rounded-full bg-[#C85A32] hover:bg-[#B04A25] px-7 py-3.5 text-sm sm:text-base font-semibold text-white shadow-[0_14px_34px_-8px_rgba(200,90,50,0.62)] transition-all duration-200 hover:-translate-y-0.5 active:scale-[0.98] cursor-pointer"
+                    className="group w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-full bg-[#C85A32] hover:bg-[#B04A25] px-7 py-3.5 text-sm sm:text-base font-semibold text-white shadow-[0_14px_34px_-8px_rgba(200,90,50,0.62)] transition-all duration-200 hover:-translate-y-0.5 active:scale-[0.98] cursor-pointer"
                   >
                     <span>Book Free Inspection</span>
                     <ArrowUpRight className="h-4 w-4 transition-transform duration-200 group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
@@ -90,7 +90,7 @@ export function HeroSection() {
 
                 <Link
                   href="/cost-estimator"
-                  className="inline-flex items-center justify-center gap-2 rounded-full bg-white/[0.06] hover:bg-white/[0.12] border border-white/15 px-6 py-3.5 text-sm sm:text-base font-semibold text-white transition-all duration-200 hover:-translate-y-0.5"
+                  className="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-full bg-white/[0.06] hover:bg-white/[0.12] border border-white/15 px-6 py-3.5 text-sm sm:text-base font-semibold text-white transition-all duration-200 hover:-translate-y-0.5"
                 >
                   <Calculator className="h-4 w-4 text-[#E8845F]" />
                   <span>Estimate Repair Cost</span>

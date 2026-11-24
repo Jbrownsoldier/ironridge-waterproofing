@@ -47,11 +47,13 @@ const CASE_ANNOTATIONS: Record<string, ComparisonAnnotation[]> = {
 export function BeforeAfterSection() {
   const prefersReducedMotion = useReducedMotion();
   const videoRef = useRef<HTMLVideoElement | null>(null);
+  const videoStageRef = useRef<HTMLDivElement | null>(null);
   const cases = siteConfig.beforeAfterSection.cases;
 
   const [activeChapter, setActiveChapter] = useState<string>(cases[0].id);
   const [activeTab, setActiveTab] = useState<string>(cases[0].id);
   const [isPlaying, setIsPlaying] = useState<boolean>(false);
+  const [userPaused, setUserPaused] = useState<boolean>(false);
   const [isMuted, setIsMuted] = useState<boolean>(true);
   const [currentTime, setCurrentTime] = useState<number>(0);
   const [duration, setDuration] = useState<number>(15.5);
@@ -59,13 +61,26 @@ export function BeforeAfterSection() {
     null
   );
 
+  // Auto-pause video when scrolled out of view to save mobile & CPU cycles
   useEffect(() => {
     const vid = videoRef.current;
-    if (!vid) return;
-    if (!prefersReducedMotion) {
-      vid.play().catch(() => {});
-    }
-  }, [prefersReducedMotion]);
+    const container = videoStageRef.current;
+    if (!vid || !container) return;
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (!entry.isIntersecting) {
+          vid.pause();
+        } else if (!prefersReducedMotion && !userPaused) {
+          vid.play().catch(() => {});
+        }
+      },
+      { threshold: 0.25 }
+    );
+
+    observer.observe(container);
+    return () => observer.disconnect();
+  }, [prefersReducedMotion, userPaused]);
 
   // Real-time chapter sync as playback crosses 0s -> 5.2s -> 10.2s
   const handleTimeUpdate = () => {
@@ -103,8 +118,10 @@ export function BeforeAfterSection() {
     const vid = videoRef.current;
     if (!vid) return;
     if (vid.paused) {
+      setUserPaused(false);
       vid.play().catch(() => {});
     } else {
+      setUserPaused(true);
       vid.pause();
     }
   };
@@ -136,7 +153,10 @@ export function BeforeAfterSection() {
         <SpotlightSurface className="rounded-3xl bg-[#111317] text-white border border-white/10 overflow-hidden shadow-[0_28px_70px_-18px_rgba(24,24,27,0.3)]">
           <div className="grid grid-cols-1 lg:grid-cols-12 items-stretch">
             <div className="lg:col-span-7 relative bg-black flex flex-col justify-between">
-              <div className="relative w-full aspect-16/10 bg-black overflow-hidden">
+              <div
+                ref={videoStageRef}
+                className="relative w-full aspect-16/10 bg-black overflow-hidden"
+              >
                 <video
                   ref={videoRef}
                   src={siteConfig.beforeAfterSection.transformationVideo}
@@ -144,7 +164,7 @@ export function BeforeAfterSection() {
                   muted={isMuted}
                   loop
                   playsInline
-                  preload="metadata"
+                  preload="none"
                   onPlay={() => setIsPlaying(true)}
                   onPause={() => setIsPlaying(false)}
                   onTimeUpdate={handleTimeUpdate}

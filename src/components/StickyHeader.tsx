@@ -13,13 +13,7 @@ import {
   Clock,
   MapPin,
 } from "lucide-react";
-import {
-  motion,
-  AnimatePresence,
-  useScroll,
-  useSpring,
-  useReducedMotion,
-} from "framer-motion";
+import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import { siteConfig } from "@/config/site";
 import { useInspectionModal } from "@/context/InspectionModalContext";
 import { useSmoothScroll } from "@/components/motion/SmoothScrollProvider";
@@ -30,26 +24,7 @@ export function StickyHeader() {
   const { pauseScroll, resumeScroll } = useSmoothScroll();
   const [isPastHero, setIsPastHero] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [supportsCssScrollTimeline, setSupportsCssScrollTimeline] =
-    useState(false);
-
   const prefersReducedMotion = useReducedMotion();
-  const { scrollYProgress } = useScroll();
-  const smoothProgress = useSpring(scrollYProgress, {
-    stiffness: 200,
-    damping: 30,
-    restDelta: 0.001,
-  });
-
-  useEffect(() => {
-    if (
-      typeof CSS !== "undefined" &&
-      typeof CSS.supports === "function" &&
-      CSS.supports("animation-timeline: scroll()")
-    ) {
-      setSupportsCssScrollTimeline(true);
-    }
-  }, []);
 
   // Zero-scroll-jank IntersectionObserver hero detection
   useEffect(() => {
@@ -122,13 +97,13 @@ export function StickyHeader() {
         </div>
       </div>
 
-      {/* Adaptive Glassmorphic Sticky Header anchored across View Transitions */}
+      {/* Adaptive Sticky Header (lightweight solid translucent on mobile, blur on desktop) */}
       <header
         style={{ viewTransitionName: "site-header" }}
-        className={`sticky top-0 z-40 w-full transition-all duration-300 ${
+        className={`sticky top-0 z-40 w-full transition-colors duration-300 ${
           isPastHero
-            ? "bg-[#FAF9F6]/92 backdrop-blur-md shadow-[0_8px_30px_-12px_rgba(24,24,27,0.09)] border-b border-zinc-900/8 text-[#18181B] py-3"
-            : "bg-[#0B0C0E]/88 backdrop-blur-md border-b border-white/10 text-white py-3.5"
+            ? "bg-[#FAF9F6]/97 md:bg-[#FAF9F6]/90 md:backdrop-blur-md shadow-[0_8px_30px_-12px_rgba(24,24,27,0.09)] border-b border-zinc-900/8 text-[#18181B] py-3"
+            : "bg-[#0B0C0E]/96 md:bg-[#0B0C0E]/88 md:backdrop-blur-md border-b border-white/10 text-white py-3.5"
         }`}
       >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between gap-6">
@@ -272,16 +247,10 @@ export function StickyHeader() {
           </div>
         </div>
 
-        {/* GPU-Native CSS Scroll-Driven Progress Bar (with Framer fallback) */}
-        {supportsCssScrollTimeline && !prefersReducedMotion ? (
+        {/* Zero-JS GPU-Native CSS Scroll-Driven Progress Bar */}
+        {!prefersReducedMotion && (
           <div
-            className="css-scroll-progress absolute bottom-0 left-0 right-0 h-[2px] bg-gradient-to-r from-[#C85A32] to-[#E8845F]"
-            aria-hidden="true"
-          />
-        ) : (
-          <motion.div
-            style={{ scaleX: prefersReducedMotion ? 0 : smoothProgress }}
-            className="absolute bottom-0 left-0 right-0 h-[2px] origin-left bg-gradient-to-r from-[#C85A32] to-[#E8845F]"
+            className="css-scroll-progress absolute bottom-0 left-0 right-0 h-[2px] origin-left scale-x-0 bg-gradient-to-r from-[#C85A32] to-[#E8845F]"
             aria-hidden="true"
           />
         )}

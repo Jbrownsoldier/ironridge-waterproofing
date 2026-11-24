@@ -40,28 +40,24 @@ export function SmoothScrollProvider({
   const pauseCountRef = useRef(0);
 
   useEffect(() => {
-    const mediaQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
-    if (mediaQuery.matches) {
+    const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
+    const finePointer = window.matchMedia("(pointer: fine)");
+
+    // On mobile/touch devices, native OS momentum scrolling is faster and uses 0% JS CPU
+    if (reducedMotion.matches || !finePointer.matches || window.innerWidth < 1024) {
       return;
     }
 
     const lenis = new Lenis({
-      duration: 1.05,
+      duration: 0.95,
       easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
       smoothWheel: true,
-      touchMultiplier: 1.4,
       wheelMultiplier: 0.95,
+      autoRaf: true,
     });
 
     lenisRef.current = lenis;
     lenis.on("scroll", ScrollTrigger.update);
-
-    const tick = (time: number) => {
-      lenis.raf(time * 1000);
-    };
-
-    gsap.ticker.add(tick);
-    gsap.ticker.lagSmoothing(0);
 
     const handlePreferenceChange = (e: MediaQueryListEvent) => {
       if (e.matches) {
@@ -71,11 +67,10 @@ export function SmoothScrollProvider({
       }
     };
 
-    mediaQuery.addEventListener("change", handlePreferenceChange);
+    reducedMotion.addEventListener("change", handlePreferenceChange);
 
     return () => {
-      mediaQuery.removeEventListener("change", handlePreferenceChange);
-      gsap.ticker.remove(tick);
+      reducedMotion.removeEventListener("change", handlePreferenceChange);
       lenis.destroy();
       lenisRef.current = null;
     };

@@ -17,7 +17,7 @@ const DialogOverlay = React.forwardRef<
   <DialogPrimitive.Overlay
     ref={ref}
     className={cn(
-      "dialog-overlay-motion fixed inset-0 z-50 bg-zinc-950/65 backdrop-blur-sm",
+      "dialog-overlay-motion fixed inset-0 z-50 bg-zinc-950/70 md:backdrop-blur-xs",
       className
     )}
     {...props}
@@ -31,21 +31,24 @@ const DialogContent = React.forwardRef<
 >(({ className, children, ...props }, ref) => (
   <DialogPortal>
     <DialogOverlay />
-    <DialogPrimitive.Content
-      ref={ref}
-      data-lenis-prevent
-      className={cn(
-        "dialog-content-motion fixed left-1/2 top-1/2 z-50 grid w-[94vw] max-w-2xl -translate-x-1/2 -translate-y-1/2 gap-4 rounded-3xl border border-zinc-200/80 bg-[#FAF9F6] p-6 md:p-8 shadow-2xl max-h-[88vh] overflow-y-auto",
-        className
-      )}
-      {...props}
-    >
-      {children}
-      <DialogPrimitive.Close className="absolute right-5 top-5 rounded-full p-2 text-zinc-500 transition-colors hover:bg-zinc-200/70 hover:text-[#18181B] focus-visible:outline-2 focus-visible:outline-[#C85A32] cursor-pointer">
-        <X className="h-5 w-5" />
-        <span className="sr-only">Close</span>
-      </DialogPrimitive.Close>
-    </DialogPrimitive.Content>
+    {/* Bulletproof flexbox viewport centering — immune to Tailwind v4 translate vs transform conflicts */}
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 pointer-events-none">
+      <DialogPrimitive.Content
+        ref={ref}
+        data-lenis-prevent
+        className={cn(
+          "dialog-content-motion pointer-events-auto relative grid w-full max-w-2xl gap-4 rounded-2xl sm:rounded-3xl border border-zinc-200/80 bg-[#FAF9F6] p-5 sm:p-7 shadow-2xl max-h-[90dvh] overflow-y-auto overscroll-contain focus:outline-none",
+          className
+        )}
+        {...props}
+      >
+        {children}
+        <DialogPrimitive.Close className="absolute right-3.5 top-3.5 sm:right-5 sm:top-5 z-30 inline-flex h-9 w-9 items-center justify-center rounded-full bg-zinc-100/90 text-zinc-600 transition-colors hover:bg-zinc-200 hover:text-[#18181B] focus-visible:outline-2 focus-visible:outline-[#C85A32] cursor-pointer">
+          <X className="h-4.5 w-4.5" />
+          <span className="sr-only">Close</span>
+        </DialogPrimitive.Close>
+      </DialogPrimitive.Content>
+    </div>
   </DialogPortal>
 ));
 DialogContent.displayName = DialogPrimitive.Content.displayName;
@@ -55,7 +58,7 @@ const DialogHeader = ({
   ...props
 }: React.HTMLAttributes<HTMLDivElement>) => (
   <div
-    className={cn("flex flex-col space-y-1.5 text-left", className)}
+    className={cn("flex flex-col space-y-1.5 text-left pr-8", className)}
     {...props}
   />
 );
@@ -68,7 +71,7 @@ const DialogTitle = React.forwardRef<
   <DialogPrimitive.Title
     ref={ref}
     className={cn(
-      "font-heading text-2xl font-bold leading-tight tracking-tight text-[#18181B]",
+      "font-heading text-xl sm:text-2xl font-bold leading-tight tracking-tight text-[#18181B]",
       className
     )}
     {...props}

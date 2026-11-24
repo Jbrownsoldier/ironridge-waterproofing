@@ -273,15 +273,15 @@ export function InspectionQualifier({ preset }: InspectionQualifierProps) {
       className="w-full rounded-3xl surface-elevated text-[#18181B] overflow-hidden transition-shadow"
     >
       {/* Architectural Diagnostic Header */}
-      <div className="px-6 pt-6 pb-4 sm:px-7 sm:pt-7">
-        <div className="flex items-center justify-between gap-2 mb-3">
+      <div className="px-4 pt-5 pb-3.5 sm:px-7 sm:pt-7 sm:pb-4">
+        <div className="flex items-center justify-between gap-2 mb-2.5 sm:mb-3 pr-10">
           <div>
-            <span className="font-mono-spec text-[11px] font-medium uppercase tracking-widest text-zinc-400">
+            <span className="font-mono-spec text-[10px] sm:text-[11px] font-medium uppercase tracking-widest text-zinc-400">
               {submittedData
                 ? `DISPATCH REF // ${submittedData.dispatchId}`
                 : `STEP 0${step} / 04 • ${siteConfig.qualifier.timeEstimate.toUpperCase()}`}
             </span>
-            <h2 className="font-heading text-xl sm:text-[22px] font-bold text-[#18181B] tracking-tight mt-0.5">
+            <h2 className="font-heading text-lg sm:text-[22px] font-bold text-[#18181B] tracking-tight mt-0.5 leading-snug">
               {siteConfig.qualifier.headerTitle}
             </h2>
           </div>
@@ -365,7 +365,7 @@ export function InspectionQualifier({ preset }: InspectionQualifierProps) {
       </div>
 
       {/* Card Body */}
-      <div className="px-6 pb-6 pt-1 sm:px-7 sm:pb-7">
+      <div className="px-4 pb-5 pt-1 sm:px-7 sm:pb-7">
         <AnimatePresence mode="wait">
           {submittedData ? (
             /* POST-SUBMIT STATE — Confirmed Dispatch Receipt + SMS Confirmation */
@@ -541,7 +541,7 @@ export function InspectionQualifier({ preset }: InspectionQualifierProps) {
                       key={option.id}
                       type="button"
                       onClick={() => handleStep1Select(option.id)}
-                      className={`group relative overflow-hidden w-full text-left rounded-2xl p-4 transition-all duration-200 flex items-center justify-between gap-3.5 cursor-pointer ${
+                      className={`group relative overflow-hidden w-full text-left rounded-2xl p-3 sm:p-4 transition-all duration-200 flex items-center justify-between gap-3 cursor-pointer ${
                         isSelected
                           ? "bg-[#F2EFE9] shadow-2xs"
                           : "bg-[#F7F6F2] hover:bg-[#EFECE6]"

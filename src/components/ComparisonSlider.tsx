@@ -190,18 +190,18 @@ export function ComparisonSlider({
         );
       })}
 
-      {/* Corner Badges */}
-      <div className="absolute top-3.5 left-3.5 z-10 pointer-events-none">
-        <span className="inline-flex items-center gap-1.5 rounded-full bg-zinc-950/80 backdrop-blur-md border border-white/10 px-3 py-1 text-[11px] font-semibold text-white">
-          <span className="h-1.5 w-1.5 rounded-full bg-[#C85A32]" />
-          {beforeLabel}
+      {/* Corner Badges (Collision-free on narrow mobile screens) */}
+      <div className="absolute top-2.5 left-2.5 sm:top-3.5 sm:left-3.5 z-10 max-w-[45%] pointer-events-none">
+        <span className="inline-flex max-w-full items-center gap-1.5 rounded-full bg-zinc-950/88 md:bg-zinc-950/80 md:backdrop-blur-md border border-white/10 px-2.5 sm:px-3 py-1 text-[10px] sm:text-[11px] font-semibold text-white">
+          <span className="h-1.5 w-1.5 rounded-full bg-[#C85A32] shrink-0" />
+          <span className="truncate">{beforeLabel}</span>
         </span>
       </div>
 
-      <div className="absolute top-3.5 right-3.5 z-10 pointer-events-none">
-        <span className="inline-flex items-center gap-1.5 rounded-full bg-[#1E6B4B]/90 backdrop-blur-md border border-emerald-300/20 px-3 py-1 text-[11px] font-semibold text-white">
-          <Check className="h-3 w-3 stroke-[2.5]" />
-          {afterLabel}
+      <div className="absolute top-2.5 right-2.5 sm:top-3.5 sm:right-3.5 z-10 max-w-[45%] pointer-events-none">
+        <span className="inline-flex max-w-full items-center gap-1.5 rounded-full bg-[#1E6B4B]/95 md:bg-[#1E6B4B]/90 md:backdrop-blur-md border border-emerald-300/20 px-2.5 sm:px-3 py-1 text-[10px] sm:text-[11px] font-semibold text-white">
+          <Check className="h-3 w-3 stroke-[2.5] shrink-0" />
+          <span className="truncate">{afterLabel}</span>
         </span>
       </div>
 

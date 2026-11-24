@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { MapPin, ArrowUpRight, CheckCircle2, Layers, Clock } from "lucide-react";
 import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import { siteConfig } from "@/config/site";
@@ -27,6 +27,19 @@ export function CentralOhioSoilMap() {
   const { openInspectionModal } = useInspectionModal();
   const prefersReducedMotion = useReducedMotion();
   const [selectedCity, setSelectedCity] = useState<string>("Dublin");
+  const [isInView, setIsInView] = useState<boolean>(true);
+  const mapRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    const el = mapRef.current;
+    if (!el) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => setIsInView(entry.isIntersecting),
+      { threshold: 0.05 }
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
 
   const activeProfile =
     siteConfig.suburbProfiles.find((s) => s.city === selectedCity) ||
@@ -52,7 +65,11 @@ export function CentralOhioSoilMap() {
             </span>
           </div>
 
-          <div className="relative my-3 aspect-16/9 w-full select-none">
+          <div
+            ref={mapRef}
+            data-paused={!isInView}
+            className="relative my-3 aspect-16/9 w-full select-none"
+          >
             <svg
               viewBox="0 0 560 300"
               className="h-full w-full"
@@ -208,11 +225,11 @@ export function CentralOhioSoilMap() {
                     aria-pressed={isSelected}
                     className="cursor-pointer focus:outline-none group"
                   >
-                    {isSelected && !prefersReducedMotion && (
+                    {isSelected && !prefersReducedMotion && isInView && (
                       <circle
                         r="18"
                         fill="rgba(200,90,50,0.22)"
-                        className="animate-ping"
+                        className="hidden md:block animate-ping"
                       />
                     )}
                     <circle

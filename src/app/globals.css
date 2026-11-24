@@ -106,24 +106,12 @@ h4,
 }
 
 /* ============================================================================
-   ARCHITECTURAL MATERIALITY: GRAIN, SUBSOIL CONTOURS & SPECULAR RIM SHEEN
+   ARCHITECTURAL MATERIALITY: LIGHTWEIGHT TEXTURE, SUBSOIL CONTOURS & RIM SHEEN
    ============================================================================ */
 
-/* Ultra-lightweight inline SVG drafting grain overlay */
+/* Zero-filter subtle architectural surface depth (replaces CPU-heavy SVG feTurbulence) */
 .surface-grain {
   position: relative;
-}
-
-.surface-grain::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  z-index: 1;
-  opacity: 0.032;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.82' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='1'/%3E%3C/svg%3E");
-  background-repeat: repeat;
-  mix-blend-mode: overlay;
 }
 
 /* Obsidian Architectural Blueprint Hero Surface with Central Ohio Clay Strata */
@@ -148,38 +136,40 @@ h4,
   background-size: 100% 100%, 44px 44px, 44px 44px;
 }
 
-/* Cursor-Aware Specular Rim Spotlight (Zero React Re-Renders) */
+/* Cursor-Aware Specular Rim Spotlight (Desktop fine-pointer only; zero mobile GPU cost) */
 .obsidian-spotlight {
   position: relative;
   --mx: 50%;
   --my: 0%;
 }
 
-.obsidian-spotlight::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  border-radius: inherit;
-  padding: 1px;
-  background: radial-gradient(
-    420px circle at var(--mx) var(--my),
-    rgba(232, 132, 95, 0.42),
-    rgba(255, 255, 255, 0.12) 38%,
-    transparent 70%
-  );
-  -webkit-mask:
-    linear-gradient(#fff 0 0) content-box,
-    linear-gradient(#fff 0 0);
-  -webkit-mask-composite: xor;
-  mask-composite: exclude;
-  pointer-events: none;
-  opacity: 0;
-  transition: opacity 0.3s ease;
-  z-index: 20;
-}
+@media (hover: hover) and (pointer: fine) {
+  .obsidian-spotlight::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    padding: 1px;
+    background: radial-gradient(
+      420px circle at var(--mx) var(--my),
+      rgba(232, 132, 95, 0.42),
+      rgba(255, 255, 255, 0.12) 38%,
+      transparent 70%
+    );
+    -webkit-mask:
+      linear-gradient(#fff 0 0) content-box,
+      linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    z-index: 20;
+  }
 
-.obsidian-spotlight:hover::before {
-  opacity: 1;
+  .obsidian-spotlight:hover::before {
+    opacity: 1;
+  }
 }
 
 /* Architectural Surfaces */
@@ -340,8 +330,17 @@ h4,
   }
 }
 
+/* Pause SVG animations when offscreen (toggled via data-paused="true") */
+[data-paused="true"] .animate-water-flow,
+[data-paused="true"] .animate-water-flow-fast,
+[data-paused="true"] .animate-sump-flow,
+[data-paused="true"] .animate-laser-sweep,
+[data-paused="true"] .animate-storm-rain {
+  animation-play-state: paused !important;
+}
+
 /* ============================================================================
-   RADIX DIALOG & ACCORDION SMOOTH SPRING KEYFRAMES
+   RADIX DIALOG & ACCORDION SMOOTH SPRING KEYFRAMES (FLEX-CENTERED, ZERO TRANSLATE CONFLICT)
    ============================================================================ */
 
 @keyframes dialog-overlay-in {
@@ -365,22 +364,22 @@ h4,
 @keyframes dialog-content-in {
   from {
     opacity: 0;
-    transform: translate(-50%, -48%) scale(0.96);
+    transform: translateY(10px) scale(0.97);
   }
   to {
     opacity: 1;
-    transform: translate(-50%, -50%) scale(1);
+    transform: translateY(0) scale(1);
   }
 }
 
 @keyframes dialog-content-out {
   from {
     opacity: 1;
-    transform: translate(-50%, -50%) scale(1);
+    transform: translateY(0) scale(1);
   }
   to {
     opacity: 0;
-    transform: translate(-50%, -48%) scale(0.97);
+    transform: translateY(8px) scale(0.98);
   }
 }
 

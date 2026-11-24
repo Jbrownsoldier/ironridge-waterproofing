@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import Image from "next/image";
 import {
   ArrowUpRight,
@@ -97,7 +97,20 @@ export function InteractiveBlueprint({
   const prefersReducedMotion = useReducedMotion();
   const [viewMode, setViewMode] = useState<"blueprint" | "photo">("blueprint");
   const [internalSim, setInternalSim] = useState<SimulationState>("protected");
+  const [isInView, setIsInView] = useState<boolean>(true);
   const svgRef = useRef<SVGSVGElement | null>(null);
+  const stageRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    const el = stageRef.current;
+    if (!el) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => setIsInView(entry.isIntersecting),
+      { threshold: 0.05 }
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
 
   const simState = simulationState ?? internalSim;
   const setSimState = (next: SimulationState) => {
@@ -281,7 +294,11 @@ export function InteractiveBlueprint({
 
       {/* Stage Viewport */}
       {viewMode === "blueprint" ? (
-        <div className="relative aspect-16/9 w-full bg-[#111317] select-none overflow-hidden">
+        <div
+          ref={stageRef}
+          data-paused={!isInView}
+          className="relative aspect-16/9 w-full bg-[#111317] select-none overflow-hidden"
+        >
           <svg
             ref={svgRef}
             viewBox="0 0 680 340"

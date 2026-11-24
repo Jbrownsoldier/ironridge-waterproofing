@@ -56,23 +56,35 @@ export function FieldVideoStage() {
   const { openInspectionModal } = useInspectionModal();
   const prefersReducedMotion = useReducedMotion();
   const videoRef = useRef<HTMLVideoElement | null>(null);
+  const stageRef = useRef<HTMLDivElement | null>(null);
 
   const [mode, setMode] = useState<"video" | "blueprint">("video");
   const [isPlaying, setIsPlaying] = useState<boolean>(false);
+  const [userPaused, setUserPaused] = useState<boolean>(false);
   const [progress, setProgress] = useState<number>(0);
   const [activeSpecId, setActiveSpecId] = useState<string>("laser");
   const [activeZoneId, setActiveZoneId] = useState<string>("active-leak");
 
+  // Auto-pause video whenever scrolled out of view to save CPU & mobile battery
   useEffect(() => {
     const vid = videoRef.current;
-    if (!vid || mode !== "video") return;
-    if (prefersReducedMotion) {
-      vid.pause();
-      setIsPlaying(false);
-    } else {
-      vid.play().catch(() => {});
-    }
-  }, [prefersReducedMotion, mode]);
+    const container = stageRef.current;
+    if (!vid || !container || mode !== "video") return;
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (!entry.isIntersecting) {
+          vid.pause();
+        } else if (!prefersReducedMotion && !userPaused) {
+          vid.play().catch(() => {});
+        }
+      },
+      { threshold: 0.25 }
+    );
+
+    observer.observe(container);
+    return () => observer.disconnect();
+  }, [prefersReducedMotion, mode, userPaused]);
 
   const activeSpec =
     HERO_SPECS.find((c) => c.id === activeSpecId) || HERO_SPECS[0];
@@ -81,9 +93,11 @@ export function FieldVideoStage() {
     const vid = videoRef.current;
     if (!vid) return;
     if (vid.paused) {
+      setUserPaused(false);
       vid.play().catch(() => {});
       setIsPlaying(true);
     } else {
+      setUserPaused(true);
       vid.pause();
       setIsPlaying(false);
     }
@@ -153,7 +167,10 @@ export function FieldVideoStage() {
       </div>
 
       {/* Completely Unobstructed 16:10 Field Video Viewport */}
-      <div className="relative aspect-16/10 w-full overflow-hidden bg-[#0B0C0E] group">
+      <div
+        ref={stageRef}
+        className="relative aspect-16/10 w-full overflow-hidden bg-[#0B0C0E] group"
+      >
         <video
           ref={videoRef}
           src={siteConfig.hero.heroVideo}
@@ -161,7 +178,7 @@ export function FieldVideoStage() {
           muted
           loop
           playsInline
-          preload="metadata"
+          preload="none"
           onPlay={() => setIsPlaying(true)}
           onPause={() => setIsPlaying(false)}
           onTimeUpdate={handleTimeUpdate}
